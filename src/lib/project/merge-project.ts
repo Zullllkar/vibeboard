@@ -3,8 +3,34 @@
  * @author：wangjunhua
  */
 
-import { mergeAssetsPreferDiscarded } from "./asset-visibility";
+import { isPersistedImageSrc, mergeAssetsPreferDiscarded } from "./asset-visibility";
+import type { ImageAsset } from "./assets-schema";
 import type { ProjectFile } from "./schema";
+
+function reviveSameImageFromNewerDisk(
+  merged: ImageAsset[],
+  diskAssets: ImageAsset[] | undefined
+): ImageAsset[] {
+  const diskById = new Map((diskAssets ?? []).map((asset) => [asset.id, asset]));
+  let changed = false;
+  const next = merged.map((asset) => {
+    const remote = diskById.get(asset.id);
+    if (!remote) return asset;
+    if (
+      asset.status === "discarded" &&
+      remote.status !== "discarded" &&
+      remote.status !== "failed" &&
+      remote.status !== "cancelled" &&
+      remote.src === asset.src &&
+      isPersistedImageSrc(remote.src)
+    ) {
+      changed = true;
+      return { ...asset, status: remote.status ?? "candidate" };
+    }
+    return asset;
+  });
+  return changed ? next : merged;
+}
 
 /** 用磁盘/API 路径替换同 id 资产的 base64 src（体积更小） */
 export function mergeApiSrcFromDisk(
@@ -40,7 +66,10 @@ export function mergeProjectWithDisk(
     return mergeApiSrcFromDisk(
       {
         ...disk,
-        assets: mergeAssetsPreferDiscarded(local.assets, disk.assets),
+        assets: reviveSameImageFromNewerDisk(
+          mergeAssetsPreferDiscarded(local.assets, disk.assets),
+          disk.assets
+        ),
         pages: local.pages,
         canvasNotes: local.canvasNotes ?? disk.canvasNotes,
       },
@@ -50,7 +79,10 @@ export function mergeProjectWithDisk(
 
   return {
     ...disk,
-    assets: mergeAssetsPreferDiscarded(local.assets, disk.assets),
+    assets: reviveSameImageFromNewerDisk(
+      mergeAssetsPreferDiscarded(local.assets, disk.assets),
+      disk.assets
+    ),
     pages: local.pages?.length ? local.pages : disk.pages,
     canvasSnapshot: disk.canvasSnapshot ?? local.canvasSnapshot,
     canvasNotes: disk.canvasNotes ?? local.canvasNotes,

@@ -34,7 +34,6 @@ import { collectProjectReferenceImages } from "@/lib/agents/reference-images";
 import { generateMaterialsForLayout } from "@/lib/handoff/generate-materials";
 import { alignPendingGeneratingAssets, mergePendingGeneratingAssets } from "@/lib/canvas/stage-generating-assets";
 import { buildDeterministicProjectReview } from "@/lib/agents/tools/review-project";
-
 let registered = false;
 
 /** 图片生成 Job 处理器 */

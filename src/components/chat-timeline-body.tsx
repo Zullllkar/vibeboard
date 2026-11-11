@@ -43,6 +43,8 @@ import {
   pickImageThumbnails,
 } from "@/lib/chat/image-tool-thumbnails";
 import { McpQuickCopy } from "@/components/mcp-quick-copy";
+import { PromptAuditPanel } from "@/components/ide/prompt-audit-panel";
+import { inferVisualCategory } from "@/lib/agents/image/visual-brief";
 import {
   ImageLightbox,
   PreviewableThumb,
@@ -1978,8 +1980,8 @@ function ImageGenerationConfirmCard({
   const [cancelled, setCancelled] = useState(false);
   const multi = prompts.length > 1;
   const meta = multi
-    ? `${prompts.length} 张 · ${item.width} × ${item.height}`
-    : `${count} 张 · ${item.width} × ${item.height}`;
+    ? `${prompts.length} 张 · ${imageSizeLabel(item.sizeMode, item.width, item.height)}`
+    : `${count} 张 · ${imageSizeLabel(item.sizeMode, item.width, item.height)}`;
 
   const submit = () => {
     const cleaned = prompts.map((p) => p.trim()).filter(Boolean);
@@ -2003,6 +2005,7 @@ function ImageGenerationConfirmCard({
         <span className="vad-approve-meta">{meta}</span>
       </div>
       <div className="vad-approve-body">
+        <ImageReferenceStrip previews={item.referencePreviews ?? []} />
         <div className="space-y-2">
         {prompts.map((prompt, index) => (
           <label key={`prompt-${index}`} className="block">
@@ -2017,6 +2020,20 @@ function ImageGenerationConfirmCard({
               disabled={submitted || cancelled}
               rows={multi ? 4 : 6}
               className="vad-approve-prompt"
+            />
+            <PromptAuditPanel
+              prompt={prompt}
+              category={inferVisualCategory({ role: item.role, prompt })}
+              compact={multi}
+              onApplyFix={
+                submitted || cancelled
+                  ? undefined
+                  : (fixed) => {
+                      const next = [...prompts];
+                      next[index] = fixed;
+                      setPrompts(next);
+                    }
+              }
             />
           </label>
         ))}
@@ -2162,7 +2179,7 @@ function ToolConfirmCard({
         ? [imageDraft.prompt]
         : [""];
   const imageMulti = imagePrompts.length > 1;
-  const imageMeta = `${imageMulti ? imagePrompts.length : imageDraft.count} 张 · ${imageDraft.width} × ${imageDraft.height}`;
+  const imageMeta = `${imageMulti ? imagePrompts.length : imageDraft.count} 张 · ${imageSizeLabel(imageDraft.sizeMode, imageDraft.width, imageDraft.height)}`;
   const imageLocked = running || approved || cancelled || submitted;
 
   if (isImageTool) {
@@ -2173,6 +2190,7 @@ function ToolConfirmCard({
           <span className="vad-approve-meta">{imageMeta}</span>
         </div>
         <div className="vad-approve-body">
+          <ImageReferenceStrip previews={imageDraft.referencePreviews} />
           <div className="space-y-2">
             {imagePrompts.map((prompt, index) => (
               <label key={`img-prompt-${index}`} className="block">
@@ -2196,6 +2214,25 @@ function ToolConfirmCard({
                   disabled={imageLocked}
                   rows={imageMulti ? 4 : 6}
                   className="vad-approve-prompt"
+                />
+                <PromptAuditPanel
+                  prompt={prompt}
+                  category={inferVisualCategory({ role: imageDraft.role, prompt })}
+                  compact={imageMulti}
+                  onApplyFix={
+                    imageLocked
+                      ? undefined
+                      : (fixed) => {
+                          const next = [...imagePrompts];
+                          next[index] = fixed;
+                          updateImageDraft({
+                            ...imageDraft,
+                            prompts: next,
+                            prompt: next[0] ?? "",
+                            count: imageMulti ? next.length : imageDraft.count,
+                          });
+                        }
+                  }
                 />
               </label>
             ))}
@@ -2222,39 +2259,62 @@ function ToolConfirmCard({
                 </label>
               ) : null}
               <label className="vad-approve-field">
-                <span>宽度</span>
-                <input
-                  type="number"
-                  min={256}
-                  max={2048}
-                  step={64}
-                  value={imageDraft.width}
-                  onChange={(event) =>
+                <span>尺寸</span>
+                <select
+                  value={imageDraft.sizeMode}
+                  onChange={(event) => {
+                    const sizeMode = event.target.value === "fixed" ? "fixed" : "auto";
                     updateImageDraft({
                       ...imageDraft,
-                      width: clampNumber(event.target.value, 256, 2048),
-                    })
-                  }
+                      sizeMode,
+                      width: sizeMode === "fixed" ? imageDraft.width || 1024 : imageDraft.width,
+                      height: sizeMode === "fixed" ? imageDraft.height || 1024 : imageDraft.height,
+                    });
+                  }}
                   disabled={imageLocked}
-                />
+                >
+                  <option value="auto">自适应</option>
+                  <option value="fixed">指定宽高</option>
+                </select>
               </label>
-              <label className="vad-approve-field">
-                <span>高度</span>
-                <input
-                  type="number"
-                  min={256}
-                  max={2048}
-                  step={64}
-                  value={imageDraft.height}
-                  onChange={(event) =>
-                    updateImageDraft({
-                      ...imageDraft,
-                      height: clampNumber(event.target.value, 256, 2048),
-                    })
-                  }
-                  disabled={imageLocked}
-                />
-              </label>
+              {imageDraft.sizeMode === "fixed" ? (
+                <>
+                  <label className="vad-approve-field">
+                    <span>宽度</span>
+                    <input
+                      type="number"
+                      min={256}
+                      max={3840}
+                      step={64}
+                      value={imageDraft.width}
+                      onChange={(event) =>
+                        updateImageDraft({
+                          ...imageDraft,
+                          width: clampNumber(event.target.value, 256, 3840),
+                        })
+                      }
+                      disabled={imageLocked}
+                    />
+                  </label>
+                  <label className="vad-approve-field">
+                    <span>高度</span>
+                    <input
+                      type="number"
+                      min={256}
+                      max={3840}
+                      step={64}
+                      value={imageDraft.height}
+                      onChange={(event) =>
+                        updateImageDraft({
+                          ...imageDraft,
+                          height: clampNumber(event.target.value, 256, 3840),
+                        })
+                      }
+                      disabled={imageLocked}
+                    />
+                  </label>
+                </>
+              ) : null}
             </div>
             {!imageLocked ? (
               <button type="button" onClick={requestChanges} className="vad-approve-quiet">
@@ -2419,14 +2479,61 @@ function formatToolArgs(args: Record<string, unknown> | undefined): string {
   }
 }
 
+type ImageReferencePreview = { id: string; label: string; src?: string };
+
+function imageSizeLabel(
+  sizeMode: "auto" | "fixed" | undefined,
+  width: number,
+  height: number,
+): string {
+  return sizeMode === "auto" ? "自适应" : `${width} × ${height}`;
+}
+
+function readReferencePreviews(value: unknown): ImageReferencePreview[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as { id?: unknown; label?: unknown; src?: unknown };
+    const id = typeof row.id === "string" ? row.id : "";
+    const label =
+      typeof row.label === "string" && row.label.trim() ? row.label.trim() : id;
+    if (!id && !label) return [];
+    const src =
+      typeof row.src === "string" &&
+      (row.src.startsWith("/api/assets/") || /^https?:\/\//i.test(row.src))
+        ? row.src
+        : undefined;
+    return [{ id, label, src }];
+  });
+}
+
+function ImageReferenceStrip({ previews }: { previews: ImageReferencePreview[] }) {
+  if (previews.length === 0) return null;
+  return (
+    <div className="vad-approve-refs">
+      {previews.map((item) => (
+        <div key={item.id || item.label} className="vad-approve-ref">
+          {item.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.src} alt="" />
+          ) : null}
+          <span>{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 type ImageToolApprovalDraft = {
   prompt: string;
   prompts: string[];
   count: number;
+  sizeMode: "auto" | "fixed";
   width: number;
   height: number;
   role: string;
   mode: string;
+  referencePreviews: ImageReferencePreview[];
 };
 
 function parseToolArgs(text: string): Record<string, unknown> {
@@ -2448,6 +2555,7 @@ function imageApprovalDraftFromArgs(
     : [];
   const prompt = stringArg(args?.prompt) || fromList[0] || "";
   const prompts = fromList.length > 0 ? fromList : prompt ? [prompt] : [];
+  const sizeMode = args?.sizeMode === "fixed" ? "fixed" : "auto";
   return {
     prompt,
     prompts,
@@ -2455,10 +2563,12 @@ function imageApprovalDraftFromArgs(
       prompts.length,
       numberArg(args?.count, prompts.length || 1, 1, 8),
     ),
-    width: numberArg(args?.width, 1024, 256, 2048),
-    height: numberArg(args?.height, 1024, 256, 2048),
+    sizeMode,
+    width: numberArg(args?.width, 1024, 256, 3840),
+    height: numberArg(args?.height, 1024, 256, 3840),
     role: stringArg(args?.role) || "product-shot",
     mode: stringArg(args?.mode) || "async",
+    referencePreviews: readReferencePreviews(args?.referencePreviews),
   };
 }
 
@@ -2484,16 +2594,22 @@ function imageApprovalArgsForPreview(
     .map((p) => p.trim())
     .filter(Boolean);
   const multi = prompts.length > 1;
+  const fixed = draft.sizeMode === "fixed";
+  const width = fixed ? clampNumber(draft.width, 256, 3840) : undefined;
+  const height = fixed ? clampNumber(draft.height, 256, 3840) : undefined;
   return {
     ...(originalArgs ?? {}),
     confirmed: true,
     prompt: prompts[0] ?? draft.prompt,
     prompts,
     count: multi ? prompts.length : clampNumber(draft.count, 1, 8),
-    width: clampNumber(draft.width, 256, 2048),
-    height: clampNumber(draft.height, 256, 2048),
+    sizeMode: fixed ? "fixed" : "auto",
+    size: fixed ? `${width}x${height}` : "auto",
+    width,
+    height,
     role: draft.role || "product-shot",
     mode: draft.mode || "async",
+    referencePreviews: draft.referencePreviews,
   };
 }
 

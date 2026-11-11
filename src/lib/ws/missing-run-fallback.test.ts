@@ -80,6 +80,28 @@ describe("matchWaitingApproval", () => {
     ).toBe("live-run");
   });
 
+  it("keeps a generate_images click when the run is still pending a different tool", () => {
+    const bound = bindCommandToWaitingRun(
+      {
+        action: "tool.approve",
+        projectId: "p1",
+        runId: "live-run",
+        approvalId: "live-run:generate_images",
+        toolArgs: { prompt: "three different homepages", count: 3 },
+      } as WsCommand,
+      {
+        ...waiting,
+        pendingToolApproval: {
+          approvalId: "live-run:batch_delete_assets:call_1",
+          status: "pending",
+          toolName: "batch_delete_assets",
+        },
+      },
+    );
+    expect(bound.runId).toBe("live-run");
+    expect(bound.approvalId).toBe("live-run:generate_images");
+  });
+
   it("rewrites the command onto the live waiting run", () => {
     const bound = bindCommandToWaitingRun(
       {

@@ -1,23 +1,24 @@
 /**
- * 按用户点名的那张图，锁定项目视觉方向并统一其余素材。
+ * 按用户点名的那张图，锁定项目视觉方向。
+ * 挂在这张图上的规格卡一起生效。其它图留在画布上，不改它们。
  */
 
 import {
-  ADOPT_RESTYLE_INSTRUCTION,
   buildAdoptedDesignDirection,
   parseAdoptAssetId,
-  pickStyleRestyleTargets,
 } from "@/lib/agents/adopt-asset-style";
+import { activeStyleSpec, adoptStyleNotes } from "@/lib/canvas/canvas-notes";
+import { adoptedProductionSkill } from "@/lib/targets/comparison-axis";
+import { resolveTargetId } from "@/lib/targets/resolve";
 import { buildDesignContext } from "@/lib/project/design-context";
 import type { AgentTool, ToolContext, ToolResult } from "./types";
 import { isUsableReferenceImage, ProjectFileSchema } from "./utils";
-import { restyleImagesTool } from "./restyle-images";
 import type { DirectionConfirmationData } from "./confirm-direction";
 
 export const adoptAssetStyleTool: AgentTool = {
   name: "adopt_asset_style",
   description:
-    "把选中素材锁定为项目整体视觉方向，并按它统一其余素材。用户点击「用此风格」或发送 [采用素材风格] 时调用。",
+    "用户点「用这个」或发送 [采用素材风格] 时调用。把这张图和它旁边的规格卡收成当前风格。不改画布上的其它图。",
   inputPhase: ["BRIEF", "DIRECTION", "GENERATION", "REVIEW"],
   outputPhase: "REVIEW",
   riskLevel: "moderate",
@@ -49,12 +50,15 @@ export const adoptAssetStyleTool: AgentTool = {
     }
 
     const now = new Date().toISOString();
+    const canvasNotes = adoptStyleNotes(ctx.project.canvasNotes, assetId);
+    const styleSpec = activeStyleSpec(canvasNotes);
     const designDirection = buildAdoptedDesignDirection({
       existing: ctx.project.designDirection,
       assetPrompt: asset.prompt,
-      visualStyle: ctx.project.brief?.visualStyle,
+      visualStyle: styleSpec ?? ctx.project.brief?.visualStyle,
       assetId,
     });
+    const imageStyle = styleSpec ?? designDirection.summary;
     const designContext = ctx.project.brief
       ? {
           ...buildDesignContext({
@@ -64,50 +68,28 @@ export const adoptAssetStyleTool: AgentTool = {
             now,
           }),
           source: "user" as const,
-          imageStyle: designDirection.summary,
+          imageStyle,
         }
       : ctx.project.designContext
         ? {
             ...ctx.project.designContext,
             source: "user" as const,
-            imageStyle: designDirection.summary,
+            imageStyle,
             moodKeywords: designDirection.moodKeywords,
             updatedAt: now,
           }
         : undefined;
 
-    let updated = ProjectFileSchema.parse({
+    const skillId = adoptedProductionSkill(resolveTargetId(ctx.project));
+    const updated = ProjectFileSchema.parse({
       ...ctx.project,
+      canvasNotes,
       designDirection,
       designContext,
+      skillId: skillId ?? ctx.project.skillId,
+      designSystemId: skillId ? undefined : ctx.project.designSystemId,
       updatedAt: now,
     });
-
-    const restyleTargets = pickStyleRestyleTargets(
-      updated.assets ?? [],
-      assetId
-    );
-    let restyleSummary = "";
-    if (restyleTargets.length > 0 && updated.brief) {
-      try {
-        const restyleResult = await restyleImagesTool.execute(
-          {
-            instruction: ADOPT_RESTYLE_INSTRUCTION,
-            n: restyleTargets.length,
-            referenceAssetId: assetId,
-            excludeAssetIds: [assetId],
-            confirmed: true,
-          },
-          { ...ctx, project: updated }
-        );
-        if (restyleResult.updatedProject) {
-          updated = restyleResult.updatedProject;
-        }
-        restyleSummary = restyleResult.summary;
-      } catch (err) {
-        restyleSummary = `风格已锁定，统一其余素材时未开始：${(err as Error).message}`;
-      }
-    }
 
     const confirmation: DirectionConfirmationData = {
       title: "已按选中画面锁定视觉方向",
@@ -121,13 +103,13 @@ export const adoptAssetStyleTool: AgentTool = {
     ctx.onProjectUpdate?.(updated);
 
     return {
-      summary: restyleSummary
-        ? `已按选中画面锁定项目风格。${restyleSummary}`
-        : "已按选中画面锁定项目风格。",
+      summary: styleSpec
+        ? "已采用这张图和它的规格卡。其它图保持原样。"
+        : "已采用这张图作为参考。其它图保持原样。",
       data: {
         confirmationRequired: true,
         assetId,
-        restyleCount: restyleTargets.length,
+        restyleCount: 0,
       },
       updatedProject: updated,
       fileWrites: ["design/direction.json"],

@@ -6,8 +6,10 @@
 import "server-only";
 
 import { promises as fs } from "node:fs";
-import { join } from "node:path";
-import { projectDir } from "@/lib/vad/paths";
+import {
+  assetContentType,
+  locateProjectAssetFile,
+} from "@/lib/vad/stored-asset-path";
 
 const API_ASSET_RE =
   /^\/api\/assets\/([^/]+)\/(assets|references)\/([^/?#]+)$/;
@@ -58,12 +60,11 @@ async function readProjectImageFile(
   filename: string
 ): Promise<string | null> {
   if (subFolder !== "assets" && subFolder !== "references") return null;
-  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "");
-  if (!safeName) return null;
+  const filePath = await locateProjectAssetFile(projectId, subFolder, filename);
+  if (!filePath) return null;
   try {
-    const filePath = join(projectDir(projectId), subFolder, safeName);
     const buf = await fs.readFile(filePath);
-    const mime = contentTypeFor(safeName);
+    const mime = assetContentType(filename);
     return `data:${mime};base64,${buf.toString("base64")}`;
   } catch {
     return null;
@@ -83,10 +84,3 @@ async function fetchUrlAsDataUrl(url: string): Promise<string | null> {
   }
 }
 
-function contentTypeFor(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase();
-  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
-  if (ext === "webp") return "image/webp";
-  if (ext === "gif") return "image/gif";
-  return "image/png";
-}

@@ -59,6 +59,25 @@ describe("asset-visibility", () => {
     expect(merged.find((a) => a.id === "a2")?.status).toBe("candidate");
   });
 
+  it("does not let a discarded placeholder cover a finished image", () => {
+    const finished = {
+      ...asset("a1", "candidate"),
+      src: "/api/assets/p/assets/a1.png",
+    };
+    const placeholder = {
+      ...asset("a1", "discarded"),
+      src: "data:image/svg+xml,x",
+      model: "pending",
+    };
+    const kept = mergeAssetsPreferDiscarded([finished], [placeholder]);
+    expect(kept.find((item) => item.id === "a1")?.status).toBe("candidate");
+    expect(kept.find((item) => item.id === "a1")?.src).toBe(finished.src);
+
+    const revived = mergeAssetsPreferDiscarded([placeholder], [finished]);
+    expect(revived.find((item) => item.id === "a1")?.status).toBe("candidate");
+    expect(revived.find((item) => item.id === "a1")?.src).toBe(finished.src);
+  });
+
   it("preserves local-only assets including discarded", () => {
     const merged = mergeAssetsPreferDiscarded(
       [asset("gone", "discarded")],

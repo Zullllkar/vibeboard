@@ -1,4 +1,10 @@
 import { expandDistinctPrompts, uniquePrompts } from "@/lib/agents/distinct-image-prompts";
+import { resolveImageSizeRequest } from "@/lib/agents/image-size";
+import {
+  collectProjectReferenceImages,
+  slimReferencePreviews,
+  withAdoptedStyleReference,
+} from "@/lib/agents/reference-images";
 import {
   buildImageGenerationConfirmation,
   parseImageGenerationConfirmation,
@@ -15,6 +21,7 @@ export interface GenerateImagesApprovalPlan {
     prompts: string[];
     reason: string;
     count: number;
+    sizeMode: "auto" | "fixed";
     width: number;
     height: number;
     role?: string;
@@ -24,9 +31,11 @@ export interface GenerateImagesApprovalPlan {
 
 export function imageToolApprovalId(
   runId: string | undefined,
-  toolName: string
+  toolName: string,
+  toolCallId?: string,
 ): string {
-  return `${runId ?? "run"}:${toolName}`;
+  const base = `${runId ?? "run"}:${toolName}`;
+  return toolCallId ? `${base}:${toolCallId}` : base;
 }
 
 export function toolResultNeedsUserConfirmation(data: unknown): boolean {
@@ -85,14 +94,35 @@ export function prepareGenerateImagesApproval(
     kind: "generate",
   });
 
+  const userMessage = sanitizeUserMessageForImagePrompt(ctx.userMessage ?? "");
   const preview = buildImageGenerationConfirmation({
     project: ctx.project,
-    userMessage: sanitizeUserMessageForImagePrompt(ctx.userMessage ?? ""),
+    userMessage,
     explicitPrompt: prompts[0] || explicitPrompt,
     explicitPrompts: prompts.length > 0 ? prompts : undefined,
     count: Math.max(1, prompts.length),
     skillSize: ctx.agentCtx.skill?.manifest.output.defaultPageSize,
   });
+  const requested = resolveImageSizeRequest({
+    userMessage,
+    sizeMode: args.sizeMode,
+    width: args.width,
+    height: args.height,
+  });
+  const preferIds = withAdoptedStyleReference(
+    [
+      ...(Array.isArray(args.referenceIds)
+        ? args.referenceIds.filter((id): id is string => typeof id === "string")
+        : []),
+      ...((ctx.agentCtx.scratch.composerReferenceIds as string[] | undefined) ?? []),
+      ...(typeof ctx.agentCtx.scratch.citedAssetId === "string"
+        ? [ctx.agentCtx.scratch.citedAssetId]
+        : []),
+    ],
+    ctx.project.designDirection?.styleSourceAssetId
+  );
+  const references = collectProjectReferenceImages(ctx.project, { preferIds, max: 3 });
+  const referencePreviews = slimReferencePreviews(references);
 
   return {
     confirmed: userApproved,
@@ -100,6 +130,9 @@ export function prepareGenerateImagesApproval(
       ...preview,
       prompts: prompts.length > 0 ? prompts : (preview.prompts ?? []),
       count: Math.max(1, prompts.length),
+      sizeMode: requested.mode,
+      width: requested.mode === "fixed" ? requested.width : preview.width,
+      height: requested.mode === "fixed" ? requested.height : preview.height,
     },
     approvedArgs: {
       ...args,
@@ -108,10 +141,14 @@ export function prepareGenerateImagesApproval(
       n: undefined,
       prompt: prompts[0] ?? preview.prompt,
       prompts,
-      width: preview.width,
-      height: preview.height,
+      size: requested.mode === "fixed" ? requested.size : "auto",
+      sizeMode: requested.mode,
+      width: requested.mode === "fixed" ? requested.width : undefined,
+      height: requested.mode === "fixed" ? requested.height : undefined,
       role: preview.role,
       mode: typeof args.mode === "string" ? args.mode : "async",
+      referenceIds: references.ids,
+      referencePreviews,
     },
   };
 }

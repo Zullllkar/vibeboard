@@ -4,6 +4,7 @@ import type { ProjectFile } from "@/lib/project/schema";
 import {
   buildAssetFamilies,
   computeBoardLayout,
+  displaySizeForImageAsset,
   familyBoardRect,
   isFamilyLayoutLoose,
   layoutAssetsByLineage,
@@ -23,6 +24,23 @@ function asset(
     ...partial,
   };
 }
+
+describe("displaySizeForImageAsset", () => {
+  it("keeps the file aspect for square, landscape, and portrait pixels", () => {
+    for (const [width, height] of [
+      [1024, 1024],
+      [1254, 1254],
+      [3840, 2160],
+      [1536, 864],
+      [1024, 1792],
+    ] as const) {
+      const display = displaySizeForImageAsset(width, height);
+      expect(display.w / display.h).toBeCloseTo(width / height, 1);
+      expect(display.w).toBeGreaterThan(0);
+      expect(display.h).toBeGreaterThan(0);
+    }
+  });
+});
 
 describe("buildAssetFamilies", () => {
   it("groups children under visible parent", () => {

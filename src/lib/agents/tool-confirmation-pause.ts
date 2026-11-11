@@ -27,6 +27,47 @@ export function isImageApprovalTool(toolName: string | undefined): boolean {
   return Boolean(toolName && IMAGE_TOOLS.has(toolName));
 }
 
+/** approvalId 形如 runId:toolName 或 runId:toolName:toolCallId。 */
+export function toolNameFromApprovalId(approvalId: string | undefined): string | undefined {
+  if (!approvalId) return undefined;
+  const toolName = approvalId.split(":")[1];
+  return toolName || undefined;
+}
+
+type ClickedApproval = {
+  approvalId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  status: "pending" | "approved" | "cancelled";
+  checkpointInterruptId?: string;
+  pausedByInterrupt?: boolean;
+  toolCallId?: string;
+  riskLevel?: string;
+  reason?: string;
+  requestedAt?: number;
+};
+
+/** 用户点的是当前卡片。旧工具还挂着 pending 时，不能把这次点击改去执行那个旧工具。 */
+export function alignPendingToClickedApproval<T extends ClickedApproval>(
+  pending: T | undefined,
+  click: { approvalId: string; args?: Record<string, unknown> },
+): T | undefined {
+  if (pending && pending.approvalId === click.approvalId) return pending;
+  const toolName = toolNameFromApprovalId(click.approvalId);
+  if (!toolName || !click.args) return undefined;
+  return {
+    ...(pending as T),
+    approvalId: click.approvalId,
+    toolName,
+    args: click.args,
+    status: "pending",
+    checkpointInterruptId: undefined,
+    pausedByInterrupt: false,
+    reason: pending?.reason ?? "User confirmed this card.",
+    requestedAt: pending?.requestedAt ?? Date.now(),
+  };
+}
+
 export function shouldPauseToolForConfirmation(input: {
   toolName: string;
   requiresConfirmation?: boolean;
@@ -112,13 +153,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+export function finishRunStatus(
+  waitingForUser: boolean,
+  pending?: { status?: string } | null,
+): "waiting_user" | "completed" {
+  if (waitingForUser || pending?.status === "pending") return "waiting_user";
+  return "completed";
+}
+
+export function approvalBlocksTool(
+  open: { toolName?: string; approvalId?: string } | undefined,
+  toolName: string,
+  toolCallId?: string,
+): boolean {
+  if (!open?.toolName) return false;
+  if (open.toolName !== toolName) return true;
+  if (!toolCallId || !open.approvalId) return false;
+  return !open.approvalId.endsWith(`:${toolCallId}`);
+}
+
 export function shouldResumeGraphInterrupt(pending: {
   toolName?: string;
   checkpointInterruptId?: string;
   pausedByInterrupt?: boolean;
   args?: Record<string, unknown>;
 }): boolean {
-  if (isImageApprovalTool(pending.toolName)) return false;
   if (pending.pausedByInterrupt) return true;
   if (typeof pending.checkpointInterruptId === "string" && pending.checkpointInterruptId) {
     return true;

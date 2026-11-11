@@ -1,5 +1,7 @@
 import { nanoid } from "nanoid";
 
+import { readRasterSizeFromDataUrl } from "@/lib/canvas/raster-size";
+
 import { uniquePrompts } from "@/lib/agents/distinct-image-prompts";
 import { GENERATING_PLACEHOLDER_SRC } from "@/lib/canvas/generating-placeholder";
 import { mergePendingGeneratingAssets } from "@/lib/canvas/stage-generating-assets";
@@ -14,6 +16,7 @@ export interface DirectImageGenerationRequest {
   count: number;
   width: number;
   height: number;
+  size?: string;
   visualStyle?: string;
   sourcePageId?: string;
   negativePrompt?: string;
@@ -166,16 +169,18 @@ export async function runDirectImageGenerationBatch({
           prompt: itemPrompt,
           width: input.width,
           height: input.height,
+          size: input.size,
           negativePrompt: input.negativePrompt,
           referenceImages: input.referenceImages,
           signal,
         });
+        const measured = readRasterSizeFromDataUrl(output.imageUrl);
         const asset: ImageAsset = {
           id: pending.id,
           prompt: itemPrompt,
           src: output.imageUrl,
-          width: input.width,
-          height: input.height,
+          width: measured?.width ?? input.width,
+          height: measured?.height ?? input.height,
           model: output.model,
           seed: output.seed,
           durationMs: output.durationMs ?? Date.now() - t0,

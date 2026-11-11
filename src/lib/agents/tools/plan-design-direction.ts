@@ -5,6 +5,7 @@
  */
 
 import { DesignDirectorAgent } from "@/lib/agents/design-director-agent";
+import { isVibeMode, vibeLocked } from "@/lib/agents/studio-mode";
 import { buildDesignContext } from "@/lib/project/design-context";
 import type { AgentTool, ToolContext, ToolResult } from "./types";
 import { ProjectFileSchema } from "./utils";
@@ -23,6 +24,12 @@ export const planDesignDirectionTool: AgentTool = {
     ctx: ToolContext
   ): Promise<ToolResult> {
     if (!ctx.project?.brief) throw new Error("缺少 brief");
+    if (isVibeMode(ctx.project) && !vibeLocked(ctx.project)) {
+      return {
+        summary: "找感觉模式先不锁定一种视觉方向。请生成三张同一主题、画面明显不同的图。",
+        data: { skipped: true },
+      };
+    }
     const architecture = ctx.project.architecture ?? {
       pages: [
         {

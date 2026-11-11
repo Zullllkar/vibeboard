@@ -20,11 +20,13 @@ describe("prepareGenerateImagesApproval", () => {
     expect(approval!.approvedArgs).toMatchObject({
       confirmed: true,
       count: 1,
-      width: 1024,
-      height: 1024,
+      size: "auto",
+      sizeMode: "auto",
       role: "product-shot",
       mode: "async",
+      referencePreviews: [],
     });
+    expect(approval!.approvedArgs.width).toBeUndefined();
     expect(String(approval!.approvedArgs.prompt)).toContain("mobile app home screen UI");
     expect(String(approval!.approvedArgs.prompt)).toContain("Do not create a poster");
   });
@@ -136,7 +138,7 @@ describe("prepareGenerateImagesApproval", () => {
     expect(approval!.approvedArgs.count).toBe(4);
   });
 
-  it("uses the bound skill page size instead of the ui-visual canvas", () => {
+  it("does not send the bound skill page size when the user did not write one", () => {
     const ctx = makeToolContext("做个 App 首页");
     ctx.agentCtx.skill = {
       sourcePath: "skills/web-prototype/SKILL.md",
@@ -165,10 +167,10 @@ describe("prepareGenerateImagesApproval", () => {
     const approval = prepareGenerateImagesApproval({}, ctx);
 
     expect(approval).not.toBeNull();
-    expect(approval?.approvedArgs.width).toBe(1440);
-    expect(approval?.approvedArgs.height).toBe(900);
-    expect(approval?.preview.width).toBe(1440);
-    expect(approval?.preview.height).toBe(900);
+    expect(approval?.approvedArgs.size).toBe("auto");
+    expect(approval?.approvedArgs.sizeMode).toBe("auto");
+    expect(approval?.approvedArgs.width).toBeUndefined();
+    expect(approval?.preview.sizeMode).toBe("auto");
   });
 
   it("filters internal instruction leakage from restored confirmation prompt", () => {
@@ -201,13 +203,14 @@ describe("prepareGenerateImagesApproval", () => {
     expect(approval!.confirmed).toBe(true);
   });
 
-  it("uses a stable per-run image approval id so two tool calls share one card", () => {
-    expect(imageToolApprovalId("run-1", "generate_images")).toBe(
-      "run-1:generate_images"
+  it("gives each image tool call its own approval id", () => {
+    expect(imageToolApprovalId("run-1", "generate_images")).toBe("run-1:generate_images");
+    expect(imageToolApprovalId("run-1", "generate_images", "call-a")).toBe(
+      "run-1:generate_images:call-a"
     );
-    expect(
-      imageToolApprovalId("run-1", "generate_images")
-    ).toBe(imageToolApprovalId("run-1", "generate_images"));
+    expect(imageToolApprovalId("run-1", "generate_images", "call-a")).not.toBe(
+      imageToolApprovalId("run-1", "generate_images", "call-b")
+    );
   });
 
   it("detects confirmationRequired tool results so resume can wait again", () => {

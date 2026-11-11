@@ -34,6 +34,20 @@ describe("buildImageGenerationConfirmation", () => {
     expect(game.prompt).not.toMatch(/not a poster|promotional banner/i);
     expect(game.width).toBe(1280);
     expect(game.height).toBe(720);
+    expect(ui.sizeMode).toBe("auto");
+    expect(ui.width).toBe(1024);
+    expect(ui.height).toBe(1024);
+  });
+
+  it("uses the pixel size written by the user", () => {
+    const screen = buildImageGenerationConfirmation({
+      project: project("ui-visual"),
+      userMessage: "做招聘雷达落地页，尺寸 1536x864",
+      count: 1,
+    });
+    expect(screen.sizeMode).toBe("fixed");
+    expect(screen.width).toBe(1536);
+    expect(screen.height).toBe(864);
   });
 
   it("uses skill default page size over the target canvas", () => {

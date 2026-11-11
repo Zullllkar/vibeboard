@@ -38,6 +38,7 @@ import {
   shouldAskDiscovery,
 } from "./discovery-gate";
 import { isAdoptAssetStyleMessage } from "./adopt-asset-style";
+import { applyVibeDecision } from "./studio-mode";
 import {
   productShotNeedsReference,
   resolveTargetId,
@@ -200,12 +201,12 @@ export async function planOrchestratorTools(
     ref,
     ctx
   ).catch(() => null);
-  if (nativePlan) return nativePlan;
+  if (nativePlan) return applyVibeDecision(project, ref.cleanText, nativePlan);
 
   const llmPlan = await tryLlmJsonPlan(project, ref.cleanText, ref, ctx).catch(
     () => null
   );
-  if (llmPlan) return llmPlan;
+  if (llmPlan) return applyVibeDecision(project, ref.cleanText, llmPlan);
 
   return decideToolsFallback(project, userMessage);
 }
@@ -499,6 +500,13 @@ function summarizeProjectState(project: ProjectFile | null) {
 }
 
 export function decideToolsFallback(
+  project: ProjectFile | null,
+  userMessage: string
+): PlannerDecision {
+  return applyVibeDecision(project, userMessage, decideDirectedTools(project, userMessage));
+}
+
+function decideDirectedTools(
   project: ProjectFile | null,
   userMessage: string
 ): PlannerDecision {

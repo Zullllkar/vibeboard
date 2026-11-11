@@ -11,6 +11,8 @@ import { isChatInlineTool } from "@/lib/agents/chat-inline-tools";
 import { registerAllSubAgents, subAgentRegistry } from "@/lib/agents/sub-agents";
 import { registerAllTools, toolRegistry } from "@/lib/agents/tools";
 import type { AgentContext } from "@/lib/agents/types";
+import { activeStyleSpec } from "@/lib/canvas/canvas-notes";
+import { isVibeMode, vibeLocked } from "@/lib/agents/studio-mode";
 import { isGeneratingPlaceholderSrc } from "@/lib/canvas/generating-placeholder";
 import { displayAssetTitle } from "@/lib/project/asset-title";
 import type { ImageAsset } from "@/lib/project/assets-schema";
@@ -375,6 +377,9 @@ function formatProjectState(project: ProjectFile | null, agentCtx?: AgentContext
   const parts = [
     `Title: ${project.title}`,
     targetNote,
+    isVibeMode(project) && !vibeLocked(project)
+      ? "Studio mode: vibe. Do not call plan_design_direction or confirm_direction. Do not ask for a visual style, tone, or palette. After the subject is known, call generate_images so the user sees three pictures of the same subject with clearly different visuals. One style is locked only after the user adopts a picture."
+      : "Studio mode: directed. Keep the existing path: discovery, brief, one visual direction, then images in that direction.",
     `Brief: ${project.brief ? "generated" : "missing"}`,
     `Visual direction: ${project.designDirection ? "generated" : "missing"}`,
     `Assets: ${assets.length}${formatAssetReadiness(assets)}`,
@@ -385,6 +390,16 @@ function formatProjectState(project: ProjectFile | null, agentCtx?: AgentContext
   ];
 
   const notes = project.canvasNotes ?? [];
+  const styleSpec = activeStyleSpec(notes);
+  if (styleSpec) {
+    parts.push(
+      `Style spec card (authoritative visual style for generate_images): ${styleSpec.slice(0, 500)}`
+    );
+  } else if (notes.some((note) => note.kind === "spec" && note.body.trim())) {
+    parts.push(
+      "Spec cards on the canvas describe individual images only. Do not apply one of them to every new image until the user adopts that picture."
+    );
+  }
   if (notes.length > 0) {
     parts.push(
       `Canvas notes: ${notes.length} (${notes

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文档 — Vibeboard</title>
+<meta name="description" content="Vibeboard 文档：在 Windows 上安装，打开一个 session，在画布上收成设计，再把约束交给 Cursor。">
+<link rel="stylesheet" href="assets/vibeboard-pages.css">
+<script>
+document.documentElement.classList.add("js");
+(function () {
+  var theme = "dark";
+  try {
+    var saved = localStorage.getItem("vibeboard-theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+</script>
+</head>
+<body>
+  <div class="grid-field" id="grid-field" aria-hidden="true"></div>
+  <div class="ruler ruler-left" aria-hidden="true"><div class="track" id="ruler-left-track"></div></div>
+  <div class="ruler ruler-bottom" aria-hidden="true"><div class="track" id="ruler-bottom-track"></div></div>
+  <header class="nav" data-od-id="nav" data-scrolled="false">
+    <div class="nav-bar">
+      <a class="logo" href="vibeboard.html" data-od-id="nav-logo">Vibeboard</a>
+      <nav class="nav-links" id="nav-links" aria-label="站点">
+        <a href="vibeboard.html" data-od-id="nav-product">产品</a>
+        <a href="vibeboard-download.html" data-od-id="nav-download">下载</a>
+        <a href="vibeboard-changelog.html" data-od-id="nav-changelog">更新日志</a>
+        <a href="vibeboard-pricing.html" data-od-id="nav-pricing">定价</a>
+        <a href="vibeboard-docs.html" data-od-id="nav-docs" aria-current="page">文档</a>
+      </nav>
+      <div class="nav-end">
+        <a class="nav-text nav-bar-only" href="vibeboard-download.html" data-od-id="nav-get">获取安装包 <span aria-hidden="true">→</span></a>
+        <button class="nav-text theme-toggle" type="button" data-od-id="nav-theme" aria-pressed="false" aria-label="切换到亮色">
+          <span class="when-dark">亮色</span><span class="when-light">暗色</span>
+        </button>
+        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="打开菜单"><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <article class="page">
+      <header data-od-id="docs-hero">
+        <p class="eyebrow">一条 session</p>
+        <h1>文档</h1>
+        <p class="gray-line">从安装到交接</p>
+        <p class="lede">Vibeboard 是 Windows 上的本地画布。下面按真正会做的顺序写：装上，写下感觉，收成设计，把约束交给 Cursor。</p>
+      </header>
+      <div class="docs-layout">
+        <nav class="docs-nav" data-od-id="docs-nav" aria-label="文档目录">
+          <a href="#install">安装</a>
+          <a href="#session">Session</a>
+          <a href="#canvas">画布</a>
+          <a href="#inspector">检查器</a>
+          <a href="#theme">主题</a>
+          <a href="#cursor">交给 Cursor</a>
+          <a href="#export">导出</a>
+          <a href="#files">文件在哪</a>
+          <a href="#limits">这一版不做</a>
+        </nav>
+        <div>
+          <section class="doc-section" id="install" data-od-id="docs-install">
+            <h2>安装</h2>
+            <p>当前公开的是 0.9.4 的安装说明。系统是 Windows 10 64 位，或 Windows 11。签名安装包的文件名会是 Vibeboard-Setup-0.9.4.exe。</p>
+            <ol class="steps">
+              <li><b>01</b><p>从下载页拿走 0.9.4 的安装说明。</p></li>
+              <li><b>02</b><p>留一个本地文件夹。程序不需要账号。</p></li>
+              <li><b>03</b><p>安装包上线后运行它，打开 Vibeboard。</p></li>
+            </ol>
+            <a class="link" href="vibeboard-download.html">打开下载页</a>
+          </section>
+          <section class="doc-section" id="session" data-od-id="docs-session">
+            <h2>Session</h2>
+            <p>一次 session 从一句感觉开始。这句话是起点，也是后来交给 Cursor 的第一行。最多 80 个字，不到四个字不会放到画布上。</p>
+            <ol class="steps">
+              <li><b>01</b><p>写下它应该长什么样。短一点，一句就够。</p></li>
+              <li><b>02</b><p>这句话进图层，也进画布上的那张纸条。</p></li>
+              <li><b>03</b><p>个人版同时进行一个 session。买断之后不限数量。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="canvas" data-od-id="docs-canvas">
+            <h2>画布</h2>
+            <p>窗口分成三块。左边是图层，中间是画布，右边是检查器。</p>
+            <ol class="steps">
+              <li><b>01</b><p>感觉层先散开。选中其中一句，当作这次的起点。</p></li>
+              <li><b>02</b><p>画板层把散句收成一块页面。导航一条，标题一句。</p></li>
+              <li><b>03</b><p>检查器显示当前选区的位置和尺寸。选中哪一块，数字就跟着哪一块。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="inspector" data-od-id="docs-inspector">
+            <h2>检查器</h2>
+            <p>右边一栏读当前选中的那一块。选区换了，名字和数字一起换。</p>
+            <ol class="steps">
+              <li><b>01</b><p>名字跟着图层：感觉、画板，或约束。</p></li>
+              <li><b>02</b><p>X 和 Y 是这一块在画布上的位置。</p></li>
+              <li><b>03</b><p>W 和 H 是它的宽和高。选中换一块，四行数字一起换。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="theme" data-od-id="docs-theme">
+            <h2>主题</h2>
+            <p>页眉右侧在亮色和暗色之间切换。默认是暗色。选择记在这台电脑上，下次打开还是上一次的。</p>
+            <ol class="steps">
+              <li><b>01</b><p>暗色是黑画布、暖白字。亮色是暖纸色底、近黑字。</p></li>
+              <li><b>02</b><p>网格、标尺、页眉和页脚跟着整页一起换。</p></li>
+              <li><b>03</b><p>画布上的设计稿仍是暖白纸面。亮色时加一圈发丝边，和纸色底分开。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="cursor" data-od-id="docs-cursor">
+            <h2>交给 Cursor</h2>
+            <p>约束贴在选中的那一块旁边。Cursor 按这份清单写，不用再维护第二份说明。</p>
+            <ol class="steps">
+              <li><b>01</b><p>清单的第一行是这句起点。</p></li>
+              <li><b>02</b><p>后面是这次定下来的：导航、标题、正文、按钮，以及这次不做的。</p></li>
+              <li><b>03</b><p>个人版在窗口里阅读。买断可以把同一份清单导出成本地文件。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="export" data-od-id="docs-export">
+            <h2>导出</h2>
+            <p>买断可以把窗口里的那份约束存成一份本地文件。个人版只在窗口里阅读，没有导出这一步。</p>
+            <ol class="steps">
+              <li><b>01</b><p>文件由你指定文件夹。程序不上传这份清单。</p></li>
+              <li><b>02</b><p>内容就是画布上定住的几行：起点、导航、标题、正文、按钮，以及这次不做的。</p></li>
+              <li><b>03</b><p>Cursor 按这份清单写。不需要再维护第二份设计说明。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="files" data-od-id="docs-files">
+            <h2>文件在哪</h2>
+            <p>画布和这句起点都在这台电脑上。亮色或暗色的选择也记在本机，下次打开还是上一次的。换一台电脑，要自己把这个文件夹带走。</p>
+            <ol class="steps">
+              <li><b>01</b><p>关掉窗口再打开，起点还在。</p></li>
+              <li><b>02</b><p>主题切换写在本机，不经过账号。</p></li>
+              <li><b>03</b><p>导出的约束文件由你指定文件夹。个人版没有这一步。</p></li>
+            </ol>
+          </section>
+          <section class="doc-section" id="limits" data-od-id="docs-limits">
+            <h2>这一版不做</h2>
+            <p>0.9 先把一条 session 做完。下面这些还没有，页面上也不写成已经有。</p>
+            <ol class="steps">
+              <li><b>01</b><p>只有 Windows 10 64 位和 Windows 11。没有 macOS，也没有 Linux。</p></li>
+              <li><b>02</b><p>没有账号，没有云端画布，也没有团队席位。</p></li>
+              <li><b>03</b><p>签名安装包还没挂上。买断的付款页也还没接上。</p></li>
+            </ol>
+            <a class="link" href="vibeboard-download.html">回到下载页看安装说明</a>
+          </section>
+        </div>
+      </div>
+    </article>
+  </main>
+  <footer class="footer" data-od-id="footer">
+    <div class="footer-grid" aria-hidden="true"></div>
+    <p class="footer-word" aria-hidden="true">Vibeboard</p>
+    <div class="footer-inner">
+      <div class="footer-mark-col">
+        <div class="app-mark" aria-hidden="true"><i>V</i><i>V</i><i>V</i></div>
+        <span class="footer-copyline footer-copyline-desk">© 2026</span>
+      </div>
+      <div class="footer-brand-col">
+        <div class="footer-group" data-od-id="footer-pages">
+          <p class="footer-title">页面</p>
+          <a href="vibeboard.html">产品</a>
+          <a href="vibeboard-download.html">下载</a>
+          <a href="vibeboard-changelog.html">更新日志</a>
+          <a href="vibeboard-pricing.html">定价</a>
+          <a href="vibeboard-docs.html">文档</a>
+        </div>
+        <button class="footer-contact footer-contact-desk" type="button" data-od-id="footer-copy">
+          <span class="footer-contact-sizer" aria-hidden="true">复制这句感觉</span>
+          <span class="footer-contact-label" aria-live="polite">复制这句感觉</span>
+        </button>
+      </div>
+      <div class="footer-group">
+        <p class="footer-title">流程</p>
+        <a href="vibeboard.html#canvas">说出感觉</a>
+        <a href="vibeboard.html#flow">收成设计</a>
+        <a href="vibeboard.html#handoff">交给 Cursor</a>
+      </div>
+      <div class="footer-group">
+        <p class="footer-title">给谁</p>
+        <a href="vibeboard.html#who">独立开发者</a>
+        <a href="vibeboard.html#who">一人全栈</a>
+        <a href="vibeboard.html#who">周末项目</a>
+      </div>
+      <div class="footer-stack">
+        <div class="footer-group">
+          <p class="footer-title">交接</p>
+          <a href="vibeboard.html#handoff">起点</a>
+          <a href="vibeboard.html#spec-nav">导航</a>
+          <a href="vibeboard.html#spec-title">标题</a>
+          <a href="#cursor">交给 Cursor</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copyline">© 2026</span>
+        <button class="footer-contact" type="button" data-od-id="footer-copy-narrow">
+          <span class="footer-contact-sizer" aria-hidden="true">复制这句感觉</span>
+          <span class="footer-contact-label" aria-live="polite">复制这句感觉</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+  <script src="assets/vibeboard-pages.js"></script>
+</body>
+</html>

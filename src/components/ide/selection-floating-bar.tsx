@@ -6,7 +6,7 @@
  * @author：wangjunhua
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowUp,
   Copy,
@@ -48,7 +48,6 @@ import { discardAssetsInProject } from "@/lib/project/discard-assets";
 import { shouldShowSpawnPromptComposer } from "@/lib/canvas/spawn-child-asset";
 import { MaterialsReviewDialog } from "@/components/materials-review-dialog";
 import { buildAdoptAssetStyleMessage } from "@/lib/agents/adopt-asset-style";
-
 interface SelectionFloatingBarProps {
   onPrompt?: (prompt: string) => void;
   onRunPrompt?: (prompt: string) => void;
@@ -100,6 +99,7 @@ export function SelectionFloatingBar({
   const [specBusy, setSpecBusy] = useState(false);
   const [specOpen, setSpecOpen] = useState(false);
   const [specPreview, setSpecPreview] = useState<AssetDesignSpec | null>(null);
+  const [regenBusy, setRegenBusy] = useState(false);
   const [materializeBusy, setMaterializeBusy] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{
     projectId: string;
@@ -518,6 +518,60 @@ export function SelectionFloatingBar({
     }
   }
 
+  async function directRegenerate() {
+    if (!asset?.src || !project || regenBusy) return;
+    setRegenBusy(true);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/agents/image/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          prompt: `Regenerate with a fresh visual treatment, same subject and composition: ${asset.prompt ?? ""}`,
+          n: 1,
+          width: asset.width || 1024,
+          height: asset.height || 1024,
+          visualStyle: project.brief?.visualStyle,
+          referenceImages: [asset.src],
+          projectId: project.id,
+          parentAssetId: asset.id,
+          role: asset.role,
+          providerConfig,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
+      }
+      if (data.project) {
+        upsert(data.project as typeof project);
+      }
+      const jobId = data?.job?.jobId as string | undefined;
+      if (jobId) {
+        await pollImageJob(jobId, project.id);
+        return;
+      }
+      const raw = (data.assets as ImageAsset[]) ?? [];
+      if (raw.length === 0) throw new Error("重新生成未返回素材");
+      const nextAssets = raw.map((a) => ({
+        ...a,
+        parentAssetId: asset.id,
+        source: "generated" as const,
+        status: "candidate" as const,
+        role: asset.role ?? a.role,
+      }));
+      upsert({
+        ...project,
+        assets: [...(project.assets ?? []), ...nextAssets],
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      setEditError((err as Error).message);
+    } finally {
+      setRegenBusy(false);
+    }
+  }
+
   const multiIds = selection.assetIds && selection.assetIds.length > 1
     ? selection.assetIds
     : null;
@@ -672,12 +726,11 @@ export function SelectionFloatingBar({
       },
       {
         key: "regen",
-        label: "重新生成",
-        icon: RefreshCw,
-        onClick: () =>
-          runOrFill(
-            `重新生成这张生图，保持主题但换一个视觉风格。参考 prompt：${asset?.prompt ?? ""}`
-          ),
+        label: regenBusy ? "生成中" : "重新生成",
+        icon: regenBusy ? Loader2 : RefreshCw,
+        onClick: () => void directRegenerate(),
+        disabled: !asset?.src || regenBusy,
+        spinning: regenBusy,
       },
       {
         key: "spec",
@@ -897,52 +950,31 @@ export function SelectionFloatingBar({
       ) : null}
 
       {!isMarkingThis && !showSpawnPrompt ? (
-        <div className="vad-canvas-dock relative w-[min(300px,86vw)]">
-          <div className="flex items-center gap-0.5 p-1.5">
-            {primaryActions.map(
-              ({ key, label, tip, icon: Icon, onClick, disabled, active, spinning }) => (
+        <div className="vad-canvas-dock relative w-max max-w-[min(440px,92vw)]">
+          <DockActionRow
+            actions={primaryActions}
+            trailing={
+              moreActions.length > 0 ? (
                 <button
-                  key={key}
                   type="button"
-                  disabled={disabled}
-                  data-tip={tip ?? label}
+                  data-tip="更多"
                   data-tip-bottom=""
-                  aria-label={tip ?? label}
-                  onClick={onClick}
+                  aria-label="更多"
+                  aria-expanded={moreOpen}
+                  onClick={() => {
+                    setVariantOpen(false);
+                    setMoreOpen((v) => !v);
+                  }}
                   className={
-                    "vad-canvas-dock-btn" +
-                    (active ? " vad-canvas-dock-btn--active" : "")
+                    "vad-canvas-dock-btn vad-canvas-dock-btn--icon" +
+                    (moreOpen ? " vad-canvas-dock-btn--active" : "")
                   }
                 >
-                  <Icon
-                    className={
-                      "size-3.5 shrink-0" + (spinning ? " animate-spin" : "")
-                    }
-                  />
-                  <span>{label}</span>
+                  <MoreHorizontal className="size-3.5" />
                 </button>
-              )
-            )}
-            {moreActions.length > 0 ? (
-              <button
-                type="button"
-                data-tip="更多"
-                data-tip-bottom=""
-                aria-label="更多"
-                aria-expanded={moreOpen}
-                onClick={() => {
-                  setVariantOpen(false);
-                  setMoreOpen((v) => !v);
-                }}
-                className={
-                  "vad-canvas-dock-btn vad-canvas-dock-btn--icon" +
-                  (moreOpen ? " vad-canvas-dock-btn--active" : "")
-                }
-              >
-                <MoreHorizontal className="size-3.5" />
-              </button>
-            ) : null}
-          </div>
+              ) : null
+            }
+          />
 
           {selection.kind === "asset" && !multiIds ? (
             <div className="vad-canvas-dock-field">
@@ -1002,6 +1034,45 @@ export function SelectionFloatingBar({
       ) : null}
     </div>
     </>
+  );
+}
+
+function DockActionRow({
+  actions,
+  trailing,
+}: {
+  actions: Array<{
+    key: string;
+    label: string;
+    tip?: string;
+    icon: typeof Star;
+    onClick: () => void;
+    disabled?: boolean;
+    active?: boolean;
+    spinning?: boolean;
+  }>;
+  trailing?: ReactNode;
+}) {
+  if (actions.length === 0 && !trailing) return null;
+  return (
+    <div className="vad-canvas-dock-actions">
+      {actions.map(({ key, label, tip, icon: Icon, onClick, disabled, active, spinning }) => (
+        <button
+          key={key}
+          type="button"
+          disabled={disabled}
+          data-tip={tip ?? label}
+          data-tip-bottom=""
+          aria-label={tip ?? label}
+          onClick={onClick}
+          className={"vad-canvas-dock-btn" + (active ? " vad-canvas-dock-btn--active" : "")}
+        >
+          <Icon className={"size-3.5 shrink-0" + (spinning ? " animate-spin" : "")} />
+          <span>{label}</span>
+        </button>
+      ))}
+      {trailing}
+    </div>
   );
 }
 

@@ -2,11 +2,27 @@ import { describe, expect, it } from "vitest";
 
 import {
   attachReferenceImagesToBody,
+  imageApiSize,
   resolveImageApiPath,
+  resolveImageEndpoint,
   shouldFallbackToGenerations,
   shouldRetryEditsAsMultipart,
   shouldRetryImageHttp,
 } from "./openai-compatible";
+
+describe("imageApiSize", () => {
+  it("sends auto when the user did not choose a pixel size", () => {
+    expect(imageApiSize(1024, 1024, "tt-image-2.5", "auto")).toBe("auto");
+    expect(imageApiSize(1024, 1024, "gpt-image-1", "auto")).toBe("auto");
+    expect(imageApiSize(1024, 1024, "dall-e-3", "auto")).toBe("1024x1024");
+  });
+
+  it("sends an explicit frame to custom models and official buckets to OpenAI", () => {
+    expect(imageApiSize(1536, 864, "tt-image-2.5", "1536x864")).toBe("1536x864");
+    expect(imageApiSize(1536, 864, "dall-e-3", "1536x864")).toBe("1792x1024");
+    expect(imageApiSize(1536, 864, "gpt-image-1", "1536x864")).toBe("1536x1024");
+  });
+});
 
 describe("attachReferenceImagesToBody", () => {
   it("adds image and images for usable references", () => {
@@ -27,6 +43,26 @@ describe("attachReferenceImagesToBody", () => {
     const body: Record<string, unknown> = { prompt: "hero" };
     attachReferenceImagesToBody(body, ["/api/assets/p/assets/a.png"]);
     expect(body.image).toBeUndefined();
+  });
+});
+
+describe("resolveImageEndpoint", () => {
+  it("keeps an OpenAI-compatible /v1 root and appends the image path", () => {
+    expect(resolveImageEndpoint("https://api.openai.com/v1", "/images/generations")).toBe(
+      "https://api.openai.com/v1/images/generations"
+    );
+    expect(resolveImageEndpoint("https://api.lk888.ai/v1", "/images/generations")).toBe(
+      "https://api.lk888.ai/v1/images/generations"
+    );
+  });
+
+  it("does not append another segment when the saved base is already the generate endpoint", () => {
+    expect(
+      resolveImageEndpoint(" https://api.lk888.ai/v1/media/generate", "/images/generations")
+    ).toBe("https://api.lk888.ai/v1/images/generations");
+    expect(
+      resolveImageEndpoint("https://api.lk888.ai/v1/images/generations/", "/images/edits")
+    ).toBe("https://api.lk888.ai/v1/images/edits");
   });
 });
 

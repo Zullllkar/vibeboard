@@ -108,7 +108,7 @@ export const inspectCanvasTool: AgentTool = {
 
     const notePart =
       noteCounts.total > 0
-        ? `，${noteCounts.total} 张文本卡片（脚本 ${noteCounts.byKind.script} / 文案 ${noteCounts.byKind.copy} / 规则 ${noteCounts.byKind.rule}）`
+        ? `，${noteCounts.total} 张文本卡片（脚本 ${noteCounts.byKind.script} / 文案 ${noteCounts.byKind.copy} / 规则 ${noteCounts.byKind.rule} / 规格 ${noteCounts.byKind.spec}）`
         : "";
     const summary = `画布检查：${pages.length} 个页面，${assets.length} 张素材（已出图 ${counts.ready}，生成中 ${counts.generating}，失败 ${counts.failed}）${notePart}。以 srcKind 为准：image=真实出图，placeholder=生成占位；不要用 320x240 判断失败。`;
 

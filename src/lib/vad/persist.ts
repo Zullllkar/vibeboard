@@ -44,16 +44,18 @@ type AssetLike = { id: string; src: string; title?: string };
 function parseDataImageSrc(
   src: string
 ): { subtype: string; buffer: Buffer } | null {
-  const match = src
-    .trim()
-    .match(/^data:image\/([a-zA-Z0-9.+-]+)(;[^,]*)?,([\s\S]+)$/i);
-  if (!match) return null;
-  const subtype = match[1];
-  const meta = match[2] ?? "";
+  const trimmed = src.trim();
+  const comma = trimmed.indexOf(",");
+  if (comma < "data:image/".length) return null;
+  const header = trimmed.slice(0, comma);
+  const headerMatch = /^data:image\/([a-zA-Z0-9.+-]+)(;.*)?$/i.exec(header);
+  if (!headerMatch) return null;
+  const subtype = headerMatch[1];
+  const meta = headerMatch[2] ?? "";
   // Generating placeholders are `data:image/svg+xml,<urlencoded svg>` with no
   // ;base64. Treating them as base64 writes garbage .svg files and breaks <img>.
   if (!/;base64/i.test(meta)) return null;
-  const payload = match[3].replace(/\s+/g, "");
+  const payload = trimmed.slice(comma + 1).replace(/\s+/g, "");
   if (!payload) return null;
   return { subtype, buffer: Buffer.from(payload, "base64") };
 }
@@ -74,20 +76,20 @@ export async function processBase64Assets<T extends AssetLike>(
     }
     const { id, src } = asset;
     if (src.startsWith("data:image/")) {
-      const parsed = parseDataImageSrc(src);
-      if (parsed) {
-        await ensureDir(dir);
-        const filename = toSafeAssetFilename(id, parsed.subtype, asset.title);
-        try {
+      try {
+        const parsed = parseDataImageSrc(src);
+        if (parsed) {
+          await ensureDir(dir);
+          const filename = toSafeAssetFilename(id, parsed.subtype, asset.title);
           await fs.writeFile(join(dir, filename), parsed.buffer);
           processed.push({
             ...asset,
             src: `/api/assets/${projectId}/${subFolder}/${filename}`,
           });
           continue;
-        } catch (error) {
-          console.error("[vad] persist asset failed", filename, error);
         }
+      } catch (error) {
+        console.error("[vad] persist asset failed", id, error);
       }
     }
     processed.push(asset);

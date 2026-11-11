@@ -65,7 +65,12 @@ describe("captureViaDesktop", () => {
       expect(String(input)).toBe(`${AGENT.url}/capture`);
       expect((init?.headers as Record<string, string>).authorization).toBe(`Bearer ${AGENT.token}`);
       const body = JSON.parse(String(init?.body));
-      expect(body).toMatchObject({ url: "http://localhost:5173/x", width: 1280, fullPage: true });
+      expect(body).toMatchObject({
+        url: "http://localhost:5173/x",
+        width: 1280,
+        fullPage: true,
+        includeDom: true,
+      });
       return new Response(
         JSON.stringify({
           ok: true,
@@ -73,19 +78,32 @@ describe("captureViaDesktop", () => {
           width: 1280,
           height: 2400,
           title: "X",
+          dom: {
+            version: 1,
+            url: "http://localhost:5173/x",
+            width: 1280,
+            height: 2400,
+            nodes: [],
+            capturedAt: "2026-01-01T00:00:00.000Z",
+          },
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const out = await captureViaDesktop({ url: "http://localhost:5173/x", width: 1280 });
+    const out = await captureViaDesktop({
+      url: "http://localhost:5173/x",
+      width: 1280,
+      includeDom: true,
+    });
     expect(out.ok).toBe(true);
     if (!out.ok) return;
     expect(out.dataUrl).toBe("data:image/png;base64,iVBORw0KGgo=");
     expect(out.width).toBe(1280);
     expect(out.height).toBe(2400);
     expect(out.title).toBe("X");
+    expect(out.dom?.nodes).toEqual([]);
   });
 
   it("surfaces agent-side failures verbatim", async () => {

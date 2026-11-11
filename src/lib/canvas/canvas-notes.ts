@@ -9,13 +9,13 @@ import type { CanvasNote, ProjectFile } from "@/lib/project/schema";
 import { canSpawnChildFrom, spawnChildAsset } from "./spawn-child-asset";
 
 export type { CanvasNote };
-export const CANVAS_NOTE_KINDS = ["script", "copy", "rule", "note"] as const;
+export const CANVAS_NOTE_KINDS = ["script", "copy", "rule", "note", "spec"] as const;
 export type CanvasNoteKind = (typeof CANVAS_NOTE_KINDS)[number];
 
 export type CiteSpawnGroup = "text" | "image";
 
 export interface CiteSpawnItem {
-  id: "script" | "copy" | "rule" | "image";
+  id: "script" | "copy" | "rule" | "spec" | "image";
   group: CiteSpawnGroup;
   label: string;
   hint: string;
@@ -25,11 +25,12 @@ export const CITE_SPAWN_ITEMS: CiteSpawnItem[] = [
   { id: "script", group: "text", label: "脚本", hint: "旁白、对白、过场脚本" },
   { id: "copy", group: "text", label: "文案", hint: "广告词、品牌文案、按钮字" },
   { id: "rule", group: "text", label: "规则", hint: "玩法、约束、保持项" },
+  { id: "spec", group: "text", label: "规格", hint: "风格、色彩、材质" },
   { id: "image", group: "image", label: "图片生成", hint: "基于该图继续生成" },
 ];
 
 export const TEXT_NOTE_DEFAULT_W = 280;
-export const TEXT_NOTE_DEFAULT_H = 220;
+export const TEXT_NOTE_DEFAULT_H = 440;
 export const CITE_NODE_GAP = 48;
 export const CITE_NODE_STACK = 24;
 
@@ -38,6 +39,7 @@ const KIND_LABEL: Record<CanvasNoteKind, string> = {
   copy: "文案",
   rule: "规则",
   note: "笔记",
+  spec: "规格",
 };
 
 export function noteKindLabel(kind: CanvasNoteKind): string {
@@ -304,6 +306,65 @@ export function composerPromptForCite(input: {
   return `${about}请写一份${label}，直接写到画布上这张卡片里（${input.noteId}），不要只停在对话。`;
 }
 
+export function activeStyleSpec(notes: CanvasNote[] | undefined): string | undefined {
+  const specs = (notes ?? []).filter(
+    (note) => note.kind === "spec" && note.adopted === true && note.body.trim()
+  );
+  if (specs.length === 0) return undefined;
+  const newest = [...specs].sort((a, b) =>
+    (a.updatedAt ?? a.createdAt) < (b.updatedAt ?? b.createdAt) ? 1 : -1
+  )[0];
+  return newest.body.replace(/\s+/g, " ").trim();
+}
+
+/** 点「用这个」后，只采用挂在这张图上的规格卡。其它规格卡留在画布上，但不进入生成。 */
+export function adoptStyleNotes(
+  notes: CanvasNote[] | undefined,
+  assetId: string
+): CanvasNote[] {
+  const list = notes ?? [];
+  const linked = list
+    .filter(
+      (note) =>
+        note.kind === "spec" &&
+        note.parentAssetId === assetId &&
+        note.body.trim().length > 0
+    )
+    .sort((a, b) =>
+      (a.updatedAt ?? a.createdAt) < (b.updatedAt ?? b.createdAt) ? 1 : -1
+    );
+  const chosenId = linked[0]?.id;
+  return list.map((note) => {
+    if (note.kind !== "spec") return note;
+    const adopted = note.id === chosenId;
+    if (note.adopted === adopted) return note;
+    return { ...note, adopted };
+  });
+}
+
+export function applyStyleSpecToPrompt(prompt: string, spec: string | undefined): string {
+  const text = spec?.replace(/\s+/g, " ").trim();
+  if (!text) return prompt;
+  if (prompt.includes(text.slice(0, 48))) return prompt;
+  return `Style spec: ${text}. Follow this visual style for the whole image. ${prompt}`;
+}
+
+const TEXT_TASK_LABEL = {
+  script: "脚本",
+  copy: "文案",
+} as const;
+
+export function composerPromptForTextTask(input: {
+  task: keyof typeof TEXT_TASK_LABEL;
+  noteId: string;
+  sourcePrompt?: string;
+}): string {
+  const about = input.sourcePrompt?.trim()
+    ? `参考图主题：${input.sourcePrompt.trim()}。`
+    : "根据参考图。";
+  return `${about}请写一份${TEXT_TASK_LABEL[input.task]}，直接写到画布上这张卡片里（${input.noteId}），不要只停在对话。`;
+}
+
 export function summarizeCanvasNotes(notes: CanvasNote[] | undefined): {
   total: number;
   byKind: Record<CanvasNoteKind, number>;
@@ -314,6 +375,7 @@ export function summarizeCanvasNotes(notes: CanvasNote[] | undefined): {
     copy: 0,
     rule: 0,
     note: 0,
+    spec: 0,
   };
   for (const note of list) {
     byKind[note.kind] += 1;

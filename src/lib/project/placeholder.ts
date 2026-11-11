@@ -37,10 +37,6 @@ export function createPlaceholderProject(
     pages: [],
     targetId: options?.targetId,
     targetLocked: options?.targetLocked,
-    directionCardId: options?.directionCardId,
-    skillId: options?.skillId,
-    skillVersion: options?.skillVersion,
-    designSystemId: options?.designSystemId,
     workspacePath: options?.workspacePath,
   };
 }

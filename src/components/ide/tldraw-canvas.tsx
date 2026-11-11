@@ -19,6 +19,7 @@ import "@/lib/canvas/tldraw-indicator-path";
  *   - 按业务 id diff/patch，保留用户手动排布的 x/y
  */
 
+import { nanoid } from "nanoid";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -34,6 +35,8 @@ import {
   Map as MapIcon,
   Minus,
   MousePointer2,
+  Globe,
+  Palette,
   Pencil,
   Plus,
   Redo2,
@@ -52,6 +55,8 @@ import {
   makeReferenceCardShape,
 } from "./reference-card-shape";
 import { TextNoteShapeUtil, makeTextNoteShape } from "./text-note-shape";
+import { WebsiteFrameShapeUtil, makeWebsiteFrameShape } from "./website-frame-shape";
+import { ComparisonBoardShapeUtil } from "./comparison-board-shape";
 import { CiteSpawnMenu, CitePortOverlay } from "./cite-spawn-menu";
 import { FlowArrowShapeUtil } from "./flow-arrow-shape";
 import {
@@ -91,6 +96,7 @@ import {
   applyUploadedImageToProject,
   buildUploadedImageAsset,
   isCanvasImageFile,
+  uploadDroppedCanvasImage,
 } from "@/lib/project/canvas-image-upload";
 import {
   TEXT_NOTE_DEFAULT_H,
@@ -100,6 +106,15 @@ import {
   placeCitedNode,
   spawnStandaloneNote,
 } from "@/lib/canvas/canvas-notes";
+import {
+  WEBSITE_FRAME_H,
+  WEBSITE_FRAME_W,
+  addBlankWebsiteFrame,
+  attachAcceptanceFrame,
+  persistWebsiteFrameLayout,
+} from "@/lib/canvas/website-frame";
+import { latestReportForAsset, useImplementationStore } from "@/store/implementation-store";
+import { persistComparisonBoardLayout } from "@/lib/canvas/comparison-board";
 import { isCanvasVisibleAsset, isCanvasVisibleReference } from "@/lib/project/asset-visibility";
 import { discardAssetsInProject } from "@/lib/project/discard-assets";
 import { imageAssetIdsFromRemovedRecords } from "@/lib/canvas/discard-removed-image-shapes";
@@ -128,6 +143,8 @@ const SHAPE_UTILS = [
   ImageAssetShapeUtil,
   ReferenceCardShapeUtil,
   TextNoteShapeUtil,
+  WebsiteFrameShapeUtil,
+  ComparisonBoardShapeUtil,
   FlowArrowShapeUtil,
   AssetLinkShapeUtil,
   FamilyBoardShapeUtil,
@@ -405,45 +422,57 @@ export function TldrawCanvas({
       let nextProject = latest;
       let cursorX = pagePoint.x;
       let lastShapeId: ReturnType<typeof makeImageAssetShape>["id"] | undefined;
-      for (const imageFile of imageFiles) {
-        const src = await readFileAsDataUrl(imageFile);
-        const size = await readImageSize(src);
-        const asset = buildUploadedImageAsset({
-          fileName: imageFile.name,
-          src,
-          width: size.width,
-          height: size.height,
-        });
-        nextProject = applyUploadedImageToProject(nextProject, asset);
-        const { w } = displaySizeForImageAsset(asset.width, asset.height);
-        const existing = editor.getCurrentPageShapes().find((s) => {
-          if ((s.type as string) !== "image-asset") return false;
-          return (
-            (s as unknown as { props: { assetId: string } }).props.assetId ===
-            asset.id
-          );
-        });
-        if (!existing) {
-          const shape = makeImageAssetShape(
-            asset.id,
-            proj.id,
-            asset.prompt,
-            asset.status ?? "candidate",
-            asset.width,
-            asset.height,
-            cursorX,
-            pagePoint.y
-          );
-          editor.createShapes(
-            [shape] as unknown as Parameters<typeof editor.createShapes>[0]
-          );
-          lastShapeId = shape.id;
+      try {
+        for (const imageFile of imageFiles) {
+          const assetId = nanoid(10);
+          const previewUrl = URL.createObjectURL(imageFile);
+          try {
+            const size = await readImageSize(previewUrl);
+            const src = await uploadDroppedCanvasImage(proj.id, assetId, imageFile);
+            const asset = buildUploadedImageAsset({
+              id: assetId,
+              fileName: imageFile.name,
+              src,
+              width: size.width,
+              height: size.height,
+            });
+            nextProject = applyUploadedImageToProject(nextProject, asset);
+            const { w } = displaySizeForImageAsset(asset.width, asset.height);
+            const existing = editor.getCurrentPageShapes().find((s) => {
+              if ((s.type as string) !== "image-asset") return false;
+              return (
+                (s as unknown as { props: { assetId: string } }).props.assetId ===
+                asset.id
+              );
+            });
+            if (!existing) {
+              const shape = makeImageAssetShape(
+                asset.id,
+                proj.id,
+                asset.prompt,
+                asset.status ?? "candidate",
+                asset.width,
+                asset.height,
+                cursorX,
+                pagePoint.y
+              );
+              editor.createShapes(
+                [shape] as unknown as Parameters<typeof editor.createShapes>[0]
+              );
+              lastShapeId = shape.id;
+            }
+            cursorX += w + 24;
+          } finally {
+            URL.revokeObjectURL(previewUrl);
+          }
         }
-        cursorX += w + 24;
+      } finally {
+        if (nextProject !== latest) {
+          projectRef.current = nextProject;
+          if (lastShapeId) editor.select(lastShapeId);
+          useProjectStore.getState().upsert(nextProject);
+        }
       }
-      projectRef.current = nextProject;
-      if (lastShapeId) editor.select(lastShapeId);
-      useProjectStore.getState().upsert(nextProject);
       return;
     }
 
@@ -571,7 +600,7 @@ function CanvasToolbar({ projectId }: { projectId?: string }) {
       <button
         type="button"
         data-tip="文本卡片 · 脚本 / 文案 / 规则"
-        aria-label="撤销"
+        aria-label="文本卡片"
         onClick={() => {
           if (!projectId) return;
           const project = useProjectStore.getState().projects[projectId];
@@ -585,7 +614,40 @@ function CanvasToolbar({ projectId }: { projectId?: string }) {
       >
         <Type className="size-4" />
       </button>
-
+      <button
+        type="button"
+        data-tip="规格卡片 · 生图风格"
+        aria-label="规格卡片"
+        onClick={() => {
+          if (!projectId) return;
+          const project = useProjectStore.getState().projects[projectId];
+          if (!project) return;
+          const vp = editor.getViewportPageBounds();
+          const x = vp.x + vp.w / 2 - TEXT_NOTE_DEFAULT_W / 2 + 36;
+          const y = vp.y + vp.h / 2 - TEXT_NOTE_DEFAULT_H / 2;
+          upsertProject(spawnStandaloneNote(project, { kind: "spec", x, y }).project);
+        }}
+        className="vad-canvas-toolbar-btn grid size-9 place-items-center transition-colors duration-150"
+      >
+        <Palette className="size-4" />
+      </button>
+      <button
+        type="button"
+        data-tip="网站卡 · 在画布上打开一个网址"
+        aria-label="网站卡"
+        onClick={() => {
+          if (!projectId) return;
+          const project = useProjectStore.getState().projects[projectId];
+          if (!project) return;
+          const vp = editor.getViewportPageBounds();
+          const x = vp.x + vp.w / 2 - WEBSITE_FRAME_W / 2;
+          const y = vp.y + vp.h / 2 - WEBSITE_FRAME_H / 2;
+          upsertProject(addBlankWebsiteFrame(project, { x, y }));
+        }}
+        className="vad-canvas-toolbar-btn grid size-9 place-items-center transition-colors duration-150"
+      >
+        <Globe className="size-4" />
+      </button>
       <span className="vad-canvas-toolbar-divider" aria-hidden />
 
       <button
@@ -835,6 +897,10 @@ function syncProjectToEditor(
       .map((r) => r.id)
   );
   const noteIds = new Set((project.canvasNotes ?? []).map((n) => n.id));
+  const websiteFrameIds = new Set((project.websiteFrames ?? []).map((frame) => frame.id));
+  const comparisonBoardIds = new Set(
+    (project.comparisonBoards ?? []).map((board) => board.id)
+  );
 
   // 网页结构框 / 页间箭头 / 旧交付卡：一律清除
   const stale = customShapes
@@ -859,6 +925,14 @@ function syncProjectToEditor(
       if (type === "text-note") {
         const props = (s as unknown as { props: { noteId: string } }).props;
         return !noteIds.has(props.noteId);
+      }
+      if (type === "website-frame") {
+        const props = (s as unknown as { props: { frameId: string } }).props;
+        return !websiteFrameIds.has(props.frameId);
+      }
+      if (type === "comparison-board") {
+        const props = (s as unknown as { props: { boardId: string } }).props;
+        return !comparisonBoardIds.has(props.boardId);
       }
       if (type === "asset-link") {
         const props = (
@@ -1022,6 +1096,21 @@ function syncProjectToEditor(
   });
 
   syncCanvasNotes(editor, project, placedMeta, force);
+  const adoptedId = project.designDirection?.styleSourceAssetId;
+  const reportUrl = adoptedId
+    ? latestReportForAsset(useImplementationStore.getState().byProject[project.id], adoptedId)?.url
+    : undefined;
+  const beside = adoptedId ? placedMeta.get(adoptedId) : undefined;
+  const shown = adoptedId && reportUrl
+    ? attachAcceptanceFrame(project, {
+        assetId: adoptedId,
+        url: reportUrl,
+        beside: beside ? { x: beside.x, y: beside.y, w: beside.w, h: beside.w } : undefined,
+      })
+    : project;
+  if (shown !== project) useProjectStore.getState().upsert(shown);
+  syncWebsiteFrames(editor, shown);
+  syncComparisonBoards(editor, project);
   syncAssetLinks(editor, project);
   syncFamilyBoards(editor, project);
   restackCanvasLayers(editor);
@@ -1100,6 +1189,53 @@ function syncCanvasNotes(
 }
 
 /** 按 parentAssetId 维护父图 → 子素材连线 */
+function syncWebsiteFrames(editor: Editor, project: ProjectFile) {
+  const frames = project.websiteFrames ?? [];
+  const shapes = editor.getCurrentPageShapes();
+  const existingById = new Map(
+    shapes
+      .filter((s) => (s.type as string) === "website-frame")
+      .map((s) => [
+        (s as unknown as { props: { frameId: string } }).props.frameId,
+        s,
+      ])
+  );
+  frames.forEach((frame) => {
+    const existing = existingById.get(frame.id);
+    const ax = existing?.x ?? frame.x ?? 0;
+    const ay = existing?.y ?? frame.y ?? 0;
+    const next = makeWebsiteFrameShape({
+      frameId: frame.id,
+      projectId: project.id,
+      x: ax,
+      y: ay,
+      w: frame.w ?? WEBSITE_FRAME_W,
+      h: frame.h ?? WEBSITE_FRAME_H,
+    });
+    if (existing) {
+      updateCustomShapes(editor, [
+        {
+          id: existing.id,
+          type: "website-frame",
+          x: ax,
+          y: ay,
+          props: next.props,
+        },
+      ]);
+    } else {
+      createCustomShapes(editor, [next]);
+    }
+  });
+}
+
+function syncComparisonBoards(editor: Editor, _project: ProjectFile) {
+  const ids = editor
+    .getCurrentPageShapes()
+    .filter((shape) => (shape.type as string) === "comparison-board")
+    .map((shape) => shape.id);
+  if (ids.length > 0) editor.deleteShapes(ids);
+}
+
 function syncAssetLinks(editor: Editor, project: ProjectFile) {
   const assets = (project.assets ?? []).filter(isCanvasVisibleAsset);
   const byId = new Map(assets.map((a) => [a.id, a]));
@@ -1701,7 +1837,29 @@ function saveCanvasSnapshot(
         x: shape.x,
         y: shape.y,
         props: (shape as unknown as {
-          props: { noteId?: string; w?: number; h?: number };
+          props: { noteId?: string; frameId?: string; w?: number; h?: number };
+        }).props,
+      }))
+    ),
+    comparisonBoards: persistComparisonBoardLayout(
+      latestForSnap.comparisonBoards,
+      editor.getCurrentPageShapes().map((shape) => ({
+        type: String(shape.type),
+        x: shape.x,
+        y: shape.y,
+        props: (shape as unknown as {
+          props: { boardId?: string; w?: number; h?: number };
+        }).props,
+      }))
+    ),
+    websiteFrames: persistWebsiteFrameLayout(
+      latestForSnap.websiteFrames,
+      editor.getCurrentPageShapes().map((shape) => ({
+        type: String(shape.type),
+        x: shape.x,
+        y: shape.y,
+        props: (shape as unknown as {
+          props: { frameId?: string; w?: number; h?: number };
         }).props,
       }))
     ),
@@ -1714,6 +1872,8 @@ function isVadShapeType(type: string): boolean {
     type === "image-asset" ||
     type === "reference-card" ||
     type === "text-note" ||
+    type === "website-frame" ||
+    type === "comparison-board" ||
     type === "flow-arrow" ||
     type === "asset-link" ||
     type === "family-board" ||
@@ -1845,15 +2005,6 @@ function updateCustomShapes(
   editor.updateShapes(
     shapes as unknown as Parameters<typeof editor.updateShapes>[0]
   );
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => resolve(String(reader.result));
-    reader.readAsDataURL(file);
-  });
 }
 
 function readImageSize(src: string): Promise<{ width: number; height: number }> {

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>下载 — Vibeboard</title>
+<meta name="description" content="下载 Vibeboard 0.9.4 的 Windows 安装说明。适用于 Windows 10 64 位和 Windows 11。">
+<link rel="stylesheet" href="assets/vibeboard-pages.css">
+<script>
+document.documentElement.classList.add("js");
+(function () {
+  var theme = "dark";
+  try {
+    var saved = localStorage.getItem("vibeboard-theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+</script>
+</head>
+<body>
+  <div class="grid-field" id="grid-field" aria-hidden="true"></div>
+  <div class="ruler ruler-left" aria-hidden="true"><div class="track" id="ruler-left-track"></div></div>
+  <div class="ruler ruler-bottom" aria-hidden="true"><div class="track" id="ruler-bottom-track"></div></div>
+  <header class="nav" data-od-id="nav" data-scrolled="false">
+    <div class="nav-bar">
+      <a class="logo" href="vibeboard.html" data-od-id="nav-logo">Vibeboard</a>
+      <nav class="nav-links" id="nav-links" aria-label="站点">
+        <a href="vibeboard.html" data-od-id="nav-product">产品</a>
+        <a href="vibeboard-download.html" data-od-id="nav-download" aria-current="page">下载</a>
+        <a href="vibeboard-changelog.html" data-od-id="nav-changelog">更新日志</a>
+        <a href="vibeboard-pricing.html" data-od-id="nav-pricing">定价</a>
+        <a href="vibeboard-docs.html" data-od-id="nav-docs">文档</a>
+      </nav>
+      <div class="nav-end">
+        <a class="nav-text nav-bar-only" href="vibeboard-docs.html" data-od-id="nav-docs-link">阅读文档</a>
+        <button class="nav-text theme-toggle" type="button" data-od-id="nav-theme" aria-pressed="false" aria-label="切换到亮色">
+          <span class="when-dark">亮色</span><span class="when-light">暗色</span>
+        </button>
+        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="打开菜单"><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <article class="page">
+      <header data-od-id="download-hero">
+        <p class="eyebrow">0.9.4 · 2026-10-09</p>
+        <h1>下载 Vibeboard</h1>
+        <p class="gray-line">装在 Windows 上</p>
+        <p class="lede">给独立开发者、一人全栈和周末项目的桌面画布。这一页先提供 0.9.4 的安装说明。签名安装包上线后，同一个按钮会换成 Vibeboard-Setup-0.9.4.exe。</p>
+        <div class="actions">
+          <a class="btn" href="downloads/Vibeboard-0.9.4-windows.txt" download="Vibeboard-0.9.4-windows.txt" data-download data-od-id="download-cta">下载 0.9.4 安装说明</a>
+          <a class="link" href="vibeboard-changelog.html#v094">看这一版改了什么</a>
+        </div>
+        <p class="status" id="download-status" aria-live="polite"></p>
+      </header>
+
+      <section class="block" data-od-id="download-build">
+        <h2>这一版</h2>
+        <div class="sheet">
+          <div class="sheet-row"><span>版本</span><p>0.9.4</p></div>
+          <div class="sheet-row"><span>日期</span><p>2026-10-09</p></div>
+          <div class="sheet-row"><span>系统</span><p>Windows 10 64 位，以及 Windows 11</p></div>
+          <div class="sheet-row"><span>安装包</span><p>Vibeboard-Setup-0.9.4.exe，签名文件还没挂上</p></div>
+          <div class="sheet-row"><span>现在拿到的</span><p>安装步骤、系统要求和交接方式，一份文本</p></div>
+        </div>
+      </section>
+
+      <section class="block" data-od-id="download-steps">
+        <h2>按这个准备</h2>
+        <ol class="steps">
+          <li><b>01</b><p>确认系统是 Windows 10 64 位，或 Windows 11。</p></li>
+          <li><b>02</b><p>留一个本地文件夹。画布和这句起点都写在这台电脑上。</p></li>
+          <li><b>03</b><p>安装包上线后运行安装程序，打开窗口，写一句它应该长什么样。</p></li>
+        </ol>
+      </section>
+
+      <section class="block" data-od-id="download-require">
+        <h2>系统只要这些</h2>
+        <div class="sheet">
+          <div class="sheet-row"><span>系统</span><p>Windows 10 64 位，或 Windows 11。</p></div>
+          <div class="sheet-row"><span>账号</span><p>不需要。程序不登录，画布不上传。</p></div>
+          <div class="sheet-row"><span>显卡</span><p>不需要独立显卡。普通办公电脑即可。</p></div>
+          <div class="sheet-row"><span>文件夹</span><p>留一个本地目录。session 和这句起点写在这里。</p></div>
+          <div class="sheet-row"><span>窗口</span><p>窄屏也能打开。图层、画布、检查器在宽窗口里并排。</p></div>
+        </div>
+      </section>
+
+      <section class="block" data-od-id="download-note">
+        <h2>这份说明里有什么</h2>
+        <div class="props">
+          <div class="prop"><span>准备</span><p>系统、本地文件夹，以及不需要账号。</p></div>
+          <div class="prop"><span>打开</span><p>安装包上线后的三步：运行安装程序，看到三栏，写下起点。</p></div>
+          <div class="prop"><span>交接</span><p>个人版在窗口里读约束。买断后可导出成一份本地文件。</p></div>
+          <div class="prop"><span>还没有</span><p>签名安装包和付款页都还没挂上。文件名仍是 Vibeboard-Setup-0.9.4.exe。</p></div>
+        </div>
+      </section>
+
+      <section class="block" id="buyout" data-od-id="download-plans">
+        <h2>个人版和买断用同一个程序</h2>
+        <div class="props">
+          <div class="prop"><span>个人</span><p>¥0。一个进行中的 session，约束在窗口里交给 Cursor。</p></div>
+          <div class="prop"><span>买断</span><p>一次 ¥168。session 不限，约束可导出成文件，包含 0.9 这一代更新。</p></div>
+        </div>
+        <a class="link" href="vibeboard-pricing.html#buyout">看定价里的差别</a>
+      </section>
+    </article>
+  </main>
+  <footer class="footer" data-od-id="footer">
+    <div class="footer-grid" aria-hidden="true"></div>
+    <p class="footer-word" aria-hidden="true">Vibeboard</p>
+    <div class="footer-inner">
+      <div class="footer-mark-col">
+        <div class="app-mark" aria-hidden="true"><i>V</i><i>V</i><i>V</i></div>
+        <span class="footer-copyline footer-copyline-desk">© 2026</span>
+      </div>
+      <div class="footer-brand-col">
+        <div class="footer-group" data-od-id="footer-pages">
+          <p class="footer-title">页面</p>
+          <a href="vibeboard.html">产品</a>
+          <a href="vibeboard-download.html">下载</a>
+          <a href="vibeboard-changelog.html">更新日志</a>
+          <a href="vibeboard-pricing.html">定价</a>
+          <a href="vibeboard-docs.html">文档</a>
+        </div>
+        <button class="footer-contact footer-contact-desk" type="button" data-od-id="footer-copy">
+          <span class="footer-contact-sizer" aria-hidden="true">复制这句感觉</span>
+          <span class="footer-contact-label" aria-live="polite">复制这句感觉</span>
+        </button>
+      </div>
+      <div class="footer-group">
+        <p class="footer-title">流程</p>
+        <a href="vibeboard.html#canvas">说出感觉</a>
+        <a href="vibeboard.html#flow">收成设计</a>
+        <a href="vibeboard.html#handoff">交给 Cursor</a>
+      </div>
+      <div class="footer-group">
+        <p class="footer-title">给谁</p>
+        <a href="vibeboard.html#who">独立开发者</a>
+        <a href="vibeboard.html#who">一人全栈</a>
+        <a href="vibeboard.html#who">周末项目</a>
+      </div>
+      <div class="footer-stack">
+        <div class="footer-group">
+          <p class="footer-title">交接</p>
+          <a href="vibeboard.html#handoff">起点</a>
+          <a href="vibeboard.html#spec-nav">导航</a>
+          <a href="vibeboard.html#spec-title">标题</a>
+          <a href="vibeboard-docs.html#cursor">交给 Cursor</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copyline">© 2026</span>
+        <button class="footer-contact" type="button" data-od-id="footer-copy-narrow">
+          <span class="footer-contact-sizer" aria-hidden="true">复制这句感觉</span>
+          <span class="footer-contact-label" aria-live="polite">复制这句感觉</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+  <script src="assets/vibeboard-pages.js"></script>
+</body>
+</html>

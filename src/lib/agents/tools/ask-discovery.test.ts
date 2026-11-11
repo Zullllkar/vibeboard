@@ -37,6 +37,32 @@ describe("askDiscoveryTool", () => {
     expect(result.data).toMatchObject({ questionsAsked: true });
   });
 
+  it("drops style questions when the project is in vibe mode", async () => {
+    const ctx = mockCtx("帮我做一个产品落地页");
+    ctx.project = {
+      id: "p1",
+      title: "游戏点子墙",
+      pages: [],
+      studioMode: "vibe",
+      targetId: "ui-visual",
+    } as never;
+    await askDiscoveryTool.execute(
+      {
+        title: "快速需求确认",
+        questions: [
+          { id: "productType", label: "要做什么？", type: "radio" },
+          { id: "tone", label: "视觉调性", type: "checkbox" },
+          { id: "audience", label: "给谁看？", type: "text" },
+        ],
+      },
+      ctx
+    );
+    const form = ctx.agentCtx.scratch.__discoveryQuestions as {
+      questions: Array<{ id: string }>;
+    };
+    expect(form.questions.map((q) => q.id)).toEqual(["productType", "audience"]);
+  });
+
   it("fills a direction-adjust form when the user clicked 我想调整", async () => {
     const ctx = mockCtx(
       "[视觉方向调整] 我希望调整当前视觉方向，请先询问我需要修改的部分。"

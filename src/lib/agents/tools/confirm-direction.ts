@@ -4,6 +4,7 @@
  * 在视觉方向生成后暂停 Agent，请用户确认或提出调整意见。
  */
 
+import { isVibeMode, vibeLocked } from "@/lib/agents/studio-mode";
 import type { AgentTool, ToolContext, ToolResult } from "./types";
 
 export interface DirectionConfirmationData {
@@ -40,6 +41,12 @@ export const confirmDirectionTool: AgentTool = {
     args: Record<string, unknown>,
     ctx: ToolContext
   ): Promise<ToolResult> {
+    if (isVibeMode(ctx.project) && !vibeLocked(ctx.project)) {
+      return {
+        summary: "找感觉模式不展示单一视觉方向。请生成三张画面不同的图，等用户自己选。",
+        data: { skipped: true },
+      };
+    }
     const direction: DirectionConfirmationData = {
       title: String(args.title ?? "视觉方向确认"),
       summary: String(

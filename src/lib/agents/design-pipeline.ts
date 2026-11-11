@@ -194,7 +194,14 @@ export async function runDesignPipeline(
     emitProgress(onProgress, "image_plan", `${plan.tasks.length} 个任务`);
     onThinking?.(`\n🖼️ **生图规划** 已完成：${plan.tasks.length} 个视觉素材任务\n`);
     for (const task of plan.tasks) {
-      onThinking?.(`  • ${task.role ?? "asset"}: ${task.imagePrompt.slice(0, 80)}${task.imagePrompt.length > 80 ? "…" : ""}\n`);
+      const audit = task.promptAudit;
+      const auditNote =
+        audit && audit.issues.length > 0
+          ? `  ⚠️ ${audit.issues.length} prompt issue(s)`
+          : "";
+      onThinking?.(
+        `  • ${task.role ?? "asset"}: ${task.imagePrompt.slice(0, 80)}${task.imagePrompt.length > 80 ? "…" : ""}${auditNote}\n`,
+      );
     }
 
     if (plan.tasks.length > 0) {

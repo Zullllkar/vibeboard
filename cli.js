@@ -63,8 +63,22 @@ const NOT_RUNNING_MESSAGE =
   "Vibeboard is not running (or bridge.json was not found). Open the Vibeboard app, then retry. " +
   `Looked in: ${path.join(resolveVadRoot(), "bridge", "bridge.json")}`;
 
+const answeredIds = new Set();
+
 function writeOut(message) {
+  if (
+    message &&
+    message.id !== undefined &&
+    (Object.hasOwn(message, "result") || Object.hasOwn(message, "error"))
+  ) {
+    answeredIds.add(message.id);
+  }
   process.stdout.write(`${JSON.stringify(message)}\n`);
+}
+
+function requestIdsOf(payload) {
+  const messages = Array.isArray(payload) ? payload : [payload];
+  return messages.filter((message) => message && message.id !== undefined && message.method).map((message) => message.id);
 }
 
 function rpcError(id, code, message) {
@@ -73,8 +87,7 @@ function rpcError(id, code, message) {
 
 async function forward(payload) {
   const endpoint = resolveEndpoint();
-  const messages = Array.isArray(payload) ? payload : [payload];
-  const requestIds = messages.filter((m) => m && m.id !== undefined && m.method).map((m) => m.id);
+  const requestIds = requestIdsOf(payload);
 
   if (!endpoint) {
     for (const id of requestIds) writeOut(rpcError(id, -32000, NOT_RUNNING_MESSAGE));
@@ -174,9 +187,26 @@ async function runMcpForwarder() {
       return;
     }
     // 串行转发，保证响应顺序与请求一致
-    inflight = inflight.then(() => forward(payload)).catch((err) => {
-      console.error("[vibeboard-mcp] forward failed:", err && err.message ? err.message : err);
-    });
+    inflight = inflight
+      .then(() => {
+        answeredIds.clear();
+        return forward(payload);
+      })
+      .catch((err) => {
+        const detail = err && err.message ? err.message : String(err);
+        console.error("[vibeboard-mcp] forward failed:", detail);
+        try {
+          for (const id of requestIdsOf(payload)) {
+            if (answeredIds.has(id)) continue;
+            writeOut(rpcError(id, -32000, `Vibeboard bridge forward failed: ${detail}`));
+          }
+        } catch (writeErr) {
+          console.error(
+            "[vibeboard-mcp] failed to report forward error:",
+            writeErr && writeErr.message ? writeErr.message : writeErr,
+          );
+        }
+      });
   });
   rl.on("close", () => {
     inflight.finally(() => process.exit(0));

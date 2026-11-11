@@ -76,6 +76,14 @@ export const ProviderConfigSchema = z.object({
     ])
     .optional(),
   visionCritic: z.boolean().optional(),
+  generationPrefs: z
+    .object({
+      mode: z.enum(["auto", "manual"]).optional(),
+      defaultImageSize: z
+        .object({ width: z.number().int().positive().max(4096), height: z.number().int().positive().max(4096) })
+        .optional(),
+    })
+    .optional(),
   skillId: z.string().optional(),
   designSystemId: z.string().optional(),
   allowMockDev: z.boolean().optional(),

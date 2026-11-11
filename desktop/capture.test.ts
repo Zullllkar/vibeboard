@@ -2,12 +2,23 @@ import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
-const { parseCaptureRequest, registrationPayload, newCaptureToken, DEFAULT_WIDTH, MAX_HEIGHT } =
+const { parseCaptureRequest, registrationPayload, newCaptureToken, DEFAULT_WIDTH, MAX_HEIGHT, captureWithWindow } =
   require("./capture.cjs") as {
     parseCaptureRequest: (
       body: unknown
     ) =>
-      | { ok: true; request: { url: string; width: number; height: number; fullPage: boolean; delayMs: number; timeoutMs: number } }
+      | {
+          ok: true;
+          request: {
+            url: string;
+            width: number;
+            height: number;
+            fullPage: boolean;
+            includeDom: boolean;
+            delayMs: number;
+            timeoutMs: number;
+          };
+        }
       | { ok: false; error: string };
     registrationPayload: (input: { agentUrl: string; agentToken: string; version?: string }) => {
       url: string;
@@ -18,6 +29,18 @@ const { parseCaptureRequest, registrationPayload, newCaptureToken, DEFAULT_WIDTH
     newCaptureToken: () => string;
     DEFAULT_WIDTH: number;
     MAX_HEIGHT: number;
+    captureWithWindow: (
+      BrowserWindow: unknown,
+      request: {
+        url: string;
+        width: number;
+        height: number;
+        fullPage: boolean;
+        includeDom: boolean;
+        delayMs: number;
+        timeoutMs: number;
+      },
+    ) => Promise<{ ok: true; dom?: unknown; domError?: string }>;
   };
 
 describe("parseCaptureRequest", () => {
@@ -28,8 +51,19 @@ describe("parseCaptureRequest", () => {
     expect(out.request.url).toBe("http://localhost:5173/dashboard");
     expect(out.request.width).toBe(DEFAULT_WIDTH);
     expect(out.request.fullPage).toBe(true);
+    expect(out.request.includeDom).toBe(false);
     expect(out.request.delayMs).toBe(800);
     expect(out.request.timeoutMs).toBe(25_000);
+  });
+
+  it("accepts includeDom when the caller asks for a DOM snapshot", () => {
+    const out = parseCaptureRequest({
+      url: "http://localhost:5173/dashboard",
+      includeDom: true,
+    });
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.request.includeDom).toBe(true);
   });
 
   it("clamps sizes and timeouts into safe ranges", () => {
@@ -57,6 +91,56 @@ describe("parseCaptureRequest", () => {
     expect(parseCaptureRequest({ url: "not a url" }).ok).toBe(false);
     expect(parseCaptureRequest(null).ok).toBe(false);
     expect(parseCaptureRequest("http://x").ok).toBe(false);
+  });
+});
+
+describe("captureWithWindow", () => {
+  it("returns a DOM snapshot when includeDom is true", async () => {
+    const fakeDom = {
+      version: 1,
+      url: "http://localhost:3000",
+      width: 1440,
+      height: 900,
+      nodes: [],
+      capturedAt: "2026-01-01T00:00:00.000Z",
+    };
+    const FakeWindow = function () {
+      return {
+        loadURL: async () => undefined,
+        webContents: {
+          setAudioMuted: () => undefined,
+          setWindowOpenHandler: () => ({ action: "deny" }),
+          executeJavaScript: async (script: string) => {
+            if (script.includes("document.fonts")) return true;
+            if (script.includes("extractDomInPage")) return fakeDom;
+            return true;
+          },
+          capturePage: async () => ({
+            getSize: () => ({ width: 1440, height: 900 }),
+            toPNG: () => Buffer.from("png"),
+          }),
+          getURL: () => "http://localhost:3000",
+          getTitle: () => "Demo",
+        },
+        setContentSize: () => undefined,
+        isDestroyed: () => false,
+        destroy: () => undefined,
+      };
+    };
+
+    const out = await captureWithWindow(FakeWindow as never, {
+      url: "http://localhost:3000",
+      width: 1440,
+      height: 900,
+      fullPage: false,
+      includeDom: true,
+      delayMs: 0,
+      timeoutMs: 30_000,
+    });
+
+    expect(out.ok).toBe(true);
+    expect(out.dom).toEqual(fakeDom);
+    expect(out.domError).toBeUndefined();
   });
 });
 

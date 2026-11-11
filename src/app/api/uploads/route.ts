@@ -6,19 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "node:fs";
-import { resolve, join, extname } from "node:path";
-import { projectDir } from "@/lib/vad/paths";
-import { ensureDir } from "@/lib/vad/persist";
 import { nanoid } from "nanoid";
-
-const ALLOWED_MIME: Record<string, string> = {
-  "image/png": ".png",
-  "image/jpeg": ".jpg",
-  "image/webp": ".webp",
-  "image/gif": ".gif",
-  "image/svg+xml": ".svg",
-};
+import {
+  isCanvasImageFile,
+  titleFromUploadFileName,
+} from "@/lib/project/canvas-image-upload";
+import { storeUploadedCanvasImage } from "@/lib/vad/store-uploaded-asset";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
@@ -34,10 +27,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no file uploaded" }, { status: 400 });
   }
 
-  const mimeType = file.type;
-  if (!ALLOWED_MIME[mimeType]) {
+  if (!isCanvasImageFile({ type: file.type, name: file.name })) {
     return NextResponse.json(
-      { error: `unsupported file type: ${mimeType}` },
+      { error: `unsupported file type: ${file.type || file.name}` },
       { status: 415 }
     );
   }
@@ -51,22 +43,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = ALLOWED_MIME[mimeType];
-    const fileId = nanoid(12);
-    const filename = `${fileId}${ext}`;
-    const assetsDir = resolve(projectDir(projectId), "assets");
-    await ensureDir(assetsDir);
-    const fullPath = join(assetsDir, filename);
-    await fs.writeFile(fullPath, buffer);
+    const requestedId = formData.get("assetId");
+    const assetId =
+      typeof requestedId === "string" && requestedId.trim()
+        ? requestedId.trim()
+        : nanoid(12);
+    const stored = await storeUploadedCanvasImage({
+      projectId,
+      assetId,
+      fileName: file.name,
+      mimeType: file.type,
+      bytes: buffer,
+      title: titleFromUploadFileName(file.name),
+    });
 
-    const relPath = `assets/${filename}`;
     return NextResponse.json({
-      id: fileId,
-      filename,
-      path: relPath,
-      mimeType,
+      id: assetId,
+      filename: stored.filename,
+      path: `assets/${stored.filename}`,
+      mimeType: file.type || "image/png",
       size: buffer.length,
-      url: `/api/projects/${projectId}/files/${relPath}`,
+      url: stored.src,
     });
   } catch (e) {
     return NextResponse.json(

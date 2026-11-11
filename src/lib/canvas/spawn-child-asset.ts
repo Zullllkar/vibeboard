@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import type { ImageAsset } from "@/lib/project/assets-schema";
 import type { ProjectFile } from "@/lib/project/schema";
 import { displayAssetTitle } from "@/lib/project/asset-title";
+import { isPersistedImageSrc } from "@/lib/project/asset-visibility";
 
 export function isEmptySpawnSlot(asset: ImageAsset): boolean {
   return !asset.src?.trim();
@@ -218,7 +219,8 @@ export function releaseStuckGeneratingAssets(
       changed = true;
       return { ...asset, status: "candidate" as const, error: undefined };
     }
-    if (matchesBatch || asset.model === "pending" || !asset.batchId) {
+    if (isPersistedImageSrc(asset.src)) return asset;
+    if (matchesBatch || !asset.batchId) {
       if ((status as string) === "discarded") return asset;
       changed = true;
       return { ...asset, status: "discarded" as const };

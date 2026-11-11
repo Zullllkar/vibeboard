@@ -1,3 +1,4 @@
+import { resolveImageSizeRequest } from "@/lib/agents/image-size";
 import { parsePromptsFromConfirmText } from "@/lib/agents/image-prompts";
 import type { ProjectFile } from "@/lib/project/schema";
 import { resolveImageFrame } from "@/lib/skills/runtime";
@@ -13,6 +14,7 @@ export interface ImageGenerationConfirmationData {
   prompts?: string[];
   reason: string;
   count: number;
+  sizeMode: "auto" | "fixed";
   width: number;
   height: number;
   role?: string;
@@ -68,6 +70,9 @@ export function buildImageGenerationConfirmation({
     explicitPrompt?.trim() ||
     buildPrompt(project, userMessage, uiScreen ? "app_home_ui" : "visual_asset");
   const multi = Boolean(prompts && prompts.length > 1);
+  const requested = resolveImageSizeRequest({ userMessage });
+  const width = requested.mode === "fixed" ? requested.width : frame.width;
+  const height = requested.mode === "fixed" ? requested.height : frame.height;
   return {
     title: uiScreen
       ? "生图执行请求：App 首页 UI"
@@ -82,8 +87,9 @@ export function buildImageGenerationConfirmation({
         ? "将按多条不同提示词各生成一张图（不同类型/构图）。执行前请逐条确认或编辑。"
         : `按「${recipe.label}」出图。执行前确认提示词、数量和画幅。`,
     count: multi ? prompts!.length : count,
-    width: frame.width,
-    height: frame.height,
+    sizeMode: requested.mode,
+    width,
+    height,
     role: uiScreen ? "product-shot" : "hero",
   };
 }

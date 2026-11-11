@@ -12,6 +12,7 @@ import { z } from "zod";
 import { parseImageGenerationConfirmation } from "@/lib/agents/image-generation-confirmation";
 import {
   applyApprovalDecision,
+  approvalBlocksTool,
   awaitUserToolApproval,
   readTrustedToolResume,
   shouldPauseToolForConfirmation,
@@ -129,15 +130,28 @@ export function createVadAgent(options: CreateAgentOptions) {
           const existingConfirmation = options.agentCtx.scratch.__toolConfirmation as
             | { approvalId?: string; toolName?: string }
             | undefined;
+          if (approvalBlocksTool(existingConfirmation, agentTool.name, nativeToolCallId)) {
+            return JSON.stringify({
+              ok: false,
+              summary: `Waiting for approval of ${existingConfirmation?.toolName} before ${agentTool.name} can run.`,
+              data: {
+                confirmationRequired: true,
+                blockedBy: existingConfirmation?.approvalId,
+              },
+            });
+          }
           const isImageTool =
             agentTool.name === "generate_images" ||
             agentTool.name === "generate_image_variants";
-          const approvalId =
+          const sameOpenCall =
             existingConfirmation?.toolName === agentTool.name &&
-            existingConfirmation.approvalId
-              ? existingConfirmation.approvalId
-              : isImageTool
-                ? imageToolApprovalId(options.runId, agentTool.name)
+            existingConfirmation.approvalId &&
+            (!nativeToolCallId ||
+              existingConfirmation.approvalId.endsWith(`:${nativeToolCallId}`));
+          const approvalId = sameOpenCall
+            ? existingConfirmation.approvalId
+            : isImageTool
+                ? imageToolApprovalId(options.runId, agentTool.name, nativeToolCallId)
                 : [
                     options.runId ?? "run",
                     agentTool.name,

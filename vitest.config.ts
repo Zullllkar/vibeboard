@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.test.ts", "src/**/*.spec.ts", "desktop/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.spec.ts", "desktop/**/*.test.ts", "cli.test.ts"],
     environment: "node",
     // Windows 上 afterEach 里清理临时目录（rm -rf）偶尔会超过默认 10s，放宽 hook 超时。
     hookTimeout: 60000,

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>定价 — Vibeboard</title>
+<meta name="description" content="Vibeboard 个人版免费。买断一次 ¥168，进行中的 session 不限，包含 0.9 这一代更新。">
+<link rel="stylesheet" href="assets/vibeboard-pages.css">
+<script>
+document.documentElement.classList.add("js");
+(function () {
+  var theme = "dark";
+  try {
+    var saved = localStorage.getItem("vibeboard-theme");
+    if (saved === "light" || saved === "dark") theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+</script>
+</head>
+<body>
+  <div class="grid-field" id="grid-field" aria-hidden="true"></div>
+  <div class="ruler ruler-left" aria-hidden="true"><div class="track" id="ruler-left-track"></div></div>
+  <div class="ruler ruler-bottom" aria-hidden="true"><div class="track" id="ruler-bottom-track"></div></div>
+  <header class="nav" data-od-id="nav" data-scrolled="false">
+    <div class="nav-bar">
+      <a class="logo" href="vibeboard.html" data-od-id="nav-logo">Vibeboard</a>
+      <nav class="nav-links" id="nav-links" aria-label="站点">
+        <a href="vibeboard.html" data-od-id="nav-product">产品</a>
+        <a href="vibeboard-download.html" data-od-id="nav-download">下载</a>
+        <a href="vibeboard-changelog.html" data-od-id="nav-changelog">更新日志</a>
+        <a href="vibeboard-pricing.html" data-od-id="nav-pricing" aria-current="page">定价</a>
+        <a href="vibeboard-docs.html" data-od-id="nav-docs">文档</a>
+      </nav>
+      <div class="nav-end">
+        <a class="nav-text nav-bar-only" href="vibeboard-docs.html" data-od-id="nav-docs-link">阅读文档</a>
+        <button class="nav-text theme-toggle" type="button" data-od-id="nav-theme" aria-pressed="false" aria-label="切换到亮色">
+          <span class="when-dark">亮色</span><span class="when-light">暗色</span>
+        </button>
+        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="打开菜单"><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <article class="page">
+      <header data-od-id="pricing-hero">
+        <p class="eyebrow">一次安装</p>
+        <h1>定价</h1>
+        <p class="gray-line">个人，或一次买断</p>
+        <p class="lede">程序装在自己的 Windows 上。个人版够完成一个 session。买断放开进行中的 session，并把约束导出成文件。付款页还没接上。</p>
+      </header>
+      <div class="price-grid" data-od-id="pricing-plans">
+        <article class="price-card" data-od-id="price-free">
+          <p class="eyebrow">个人</p>
+          <p class="sum">¥0</p>
+          <h2>一个进行中的 session</h2>
+          <p>本地画布，亮色和暗色，在窗口里把约束交给 Cursor。</p>
+          <a class="link" href="vibeboard-download.html">下载个人版说明</a>
+        </article>
+        <article class="price-card" id="buyout" data-od-id="price-buyout">
+          <p class="eyebrow">买断</p>
+          <p class="sum">¥168</p>
+          <h2>一次付款</h2>
+          <p>进行中的 session 不限。约束可导出成一份本地文件。0.9 这一代的更新包含在内。</p>
+          <button class="btn" type="button" data-copy-offer data-od-id="buyout-cta">复制买断说明</button>
+          <p class="status" id="offer-status" aria-live="polite"></p>
+        </article>
+      </div>
+      <section class="block" data-od-id="pricing-compare">
+        <h2>对照</h2>
+        <div class="compare">
+          <div class="compare-row compare-head"><span>项目</span><span>个人</span><span>买断</span></div>
+          <div class="compare-row"><span>Session</span><span>一个</span><span>不限</span></div>
+          <div class="compare-row"><span>约束</span><span>窗口里看</span><span>导出文件</span></div>
+          <div class="compare-row"><span>画布</span><span>本机</span><span>本机</span></div>
+          <div class="compare-row"><span>主题</span><span>亮色和暗色</span><span>亮色和暗色</span></div>
+          <div class="compare-row"><span>账号</span><span>不需要</span><span>不需要</span></div>
+          <div class="compare-row"><span>系统</span><span>Windows</span><span>Windows</span></div>
+          <div class="compare-row"><span>更新</span><span>当前版本</span><span>0.9 这一代</span></div>
+          <div class="compare-row"><span>价格</span><span>¥0</span><span>¥168 一次</span></div>
+        </div>
+      </section>
+
+      <section class="block" data-od-id="pricing-same">
+        <h2>两边都有的</h2>
+        <div class="props">
+          <div class="prop"><span>程序</span><p>同一个 Windows 安装。个人和买断不是两套软件。</p></div>
+          <div class="prop"><span>画布</span><p>图层、画布、检查器，亮色和暗色，起点留在本机。</p></div>
+          <div class="prop"><span>交接</span><p>约束贴在选区旁边。差别只在能不能把这份清单导出成文件。</p></div>
+          <div class="prop"><span>账号</span><p>都不需要登录。换电脑时，自己带走本地文件夹。</p></div>
+        </div>
+      </section>
+
+      <section class="block" data-od-id="pricing-faq">
+        <h2>买之前</h2>
+        <div class="props">
+          <div class="prop" data-od-id="price-pay"><span>付款</span><p>页面上的价格是说明。付款还没接上，买断先复制那句说明。</p></div>
+          <div class="prop" data-od-id="price-updates"><span>更新</span><p>买断包含 0.9 这一代。下一代怎么算，这一版还没写进许可。</p></div>
+          <div class="prop" data-od-id="price-seats"><span>席位</span><p>按这台 Windows 来用。没有团队席位，也没有云端共享画布。</p></div>
+          <div class="prop" data-od-id="price-refund"><span>退回</span><p>付款页还没接上，所以现在没有订单可退。</p></div>
+        </div>
+      </section>
+    </article>
+  </main>
+  <footer class="footer" data-od-id="footer">
+    <div class="footer-grid" aria-hidden="true"></div>
+    <p class="footer-word" aria-hidden="true">Vibeboard</p>
+    <div class="footer-inner">
+      <div class="footer-mark-col">
+        <div class="app-mark" aria-hidden="true"><i>V</i><i>V</i><i>V</i></div>
+        <span class="footer-copyline footer-copyline-desk">© 2026</span>
+      </div>
+      <div class="footer-brand-col">
+        <div class="footer-group" data-od-id="footer-pages">
+          <p class="footer-title">页面</p>
+          <a href="vibeboard.html">产品</a>
+          <a href="vibeboard-download.html">下载</a>
+          <a href="vibeboard-changelog.html">更新日志</a>
+          <a href="vibeboard-pricing.html">定价</a>
+          <a href="vibeboard-docs.html">文档</a>
+        </div>
+        <button class="footer-contact footer-contact-desk" type="button" data-od-id="footer-copy">
+          <span class="footer-contact-sizer" aria-hidden="true">复制这句感觉</span>
+          <span class="footer-contact-label" aria-live="polite">复制这句感觉</span>
+        </button>
+      </div>
+      <div class="footer-group">
+        <p class="footer-title">流程</p>
+        <a href="vibeboard.html#canvas">说出感觉</a>
+        <a href="vibeboard.html#flow">收成设计</a>
+        <a href="vibeboard.html#handoff">交给 Cursor</a>
+      </div>
+      <div class="footer-group">
+        <p class="footer-title">给谁</p>
+        <a href="vibeboard.html#who">独立开发者</a>
+        <a href="vibeboard.html#who">一人全栈</a>
+        <a href="vibeboard.html#who">周末项目</a>
+      </div>
+      <div class="footer-stack">
+        <div class="footer-group">
+          <p class="footer-title">交接</p>
+          <a href="vibeboard.html#handoff">起点</a>
+          <a href="vibeboard.html#spec-nav">导航</a>
+          <a href="vibeboard.html#spec-title">标题</a>
+          <a href="vibeboard-docs.html#cursor">交给 Cursor</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copyline">© 2026</span>
+        <button class="footer-contact" type="button" data-od-id="footer-copy-narrow">
+          <span class="footer-contact-sizer" aria-hidden="true">复制这句感觉</span>
+          <span class="footer-contact-label" aria-live="polite">复制这句感觉</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+  <script src="assets/vibeboard-pages.js"></script>
+</body>
+</html>

@@ -8,12 +8,10 @@ export async function resolveSkillContext(
   providerConfig?: ProviderConfig,
   project?: Pick<ProjectFile, "skillId" | "designSystemId"> | null,
 ) {
-  const skillId = project?.skillId ?? providerConfig?.skillId;
+  void providerConfig;
+  const skillId = project?.skillId;
   const skill = await resolveSkill(skillId);
-  const designSystemId =
-    project?.designSystemId ??
-    providerConfig?.designSystemId ??
-    skill?.manifest.recommendedDesignSystem;
+  const designSystemId = project?.designSystemId;
   const designSystem = await resolveDesignSystem(designSystemId);
 
   return {

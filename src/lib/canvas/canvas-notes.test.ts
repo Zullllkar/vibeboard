@@ -5,7 +5,11 @@ import {
   CITE_SPAWN_ITEMS,
   canCiteFromAsset,
   composerPromptForCite,
+  composerPromptForTextTask,
   defaultTitleForKind,
+  activeStyleSpec,
+  adoptStyleNotes,
+  applyStyleSpecToPrompt,
   noteKindLabel,
   placeCitedNode,
   spawnCitedImage,
@@ -51,7 +55,7 @@ function project(assets: ImageAsset[], notes: ProjectFile["canvasNotes"] = []): 
 describe("cite spawn menu", () => {
   it("lists text kinds and image generation for citing a node", () => {
     const ids = CITE_SPAWN_ITEMS.map((item) => item.id);
-    expect(ids).toEqual(["script", "copy", "rule", "image"]);
+    expect(ids).toEqual(["script", "copy", "rule", "spec", "image"]);
     expect(CITE_SPAWN_ITEMS[0]).toMatchObject({
       id: "script",
       label: "脚本",
@@ -180,12 +184,72 @@ describe("cited drop placement", () => {
   });
 });
 
+describe("style spec", () => {
+  it("uses the newest written spec as the image style", () => {
+    const spec = activeStyleSpec([
+      {
+        id: "old",
+        kind: "spec",
+        title: "规格",
+        body: "旧风格",
+        createdAt: "2026-10-01T00:00:00.000Z",
+        updatedAt: "2026-10-01T00:00:00.000Z",
+      },
+      {
+        id: "copy",
+        kind: "copy",
+        title: "文案",
+        body: "不要用我",
+        createdAt: "2026-10-03T00:00:00.000Z",
+      },
+      {
+        id: "new",
+        kind: "spec",
+        title: "规格",
+        body: "冷灰底，墨黑字",
+        adopted: true,
+        createdAt: "2026-10-02T00:00:00.000Z",
+        updatedAt: "2026-10-04T00:00:00.000Z",
+      },
+    ]);
+    expect(spec).toBe("冷灰底，墨黑字");
+    expect(applyStyleSpecToPrompt("招聘雷达首页", spec)).toContain("冷灰底，墨黑字");
+    expect(applyStyleSpecToPrompt("招聘雷达首页", undefined)).toBe("招聘雷达首页");
+  });
+
+  it("ignores a spec until the user adopts that card", () => {
+    const notes = [
+      {
+        id: "spec-a",
+        kind: "spec" as const,
+        title: "规格",
+        body: "冷灰底，墨黑字",
+        parentAssetId: "img-a",
+        createdAt: "2026-10-02T00:00:00.000Z",
+      },
+      {
+        id: "spec-b",
+        kind: "spec" as const,
+        title: "规格",
+        body: "暖纸色，衬线标题",
+        parentAssetId: "img-b",
+        createdAt: "2026-10-03T00:00:00.000Z",
+      },
+    ];
+    expect(activeStyleSpec(notes)).toBeUndefined();
+    const adopted = adoptStyleNotes(notes, "img-a");
+    expect(activeStyleSpec(adopted)).toBe("冷灰底，墨黑字");
+    expect(adopted.find((note) => note.id === "spec-b")?.adopted).toBe(false);
+  });
+});
+
 describe("note labels and composer prompt", () => {
   it("maps kinds to canvas labels", () => {
     expect(noteKindLabel("script")).toBe("脚本");
     expect(noteKindLabel("copy")).toBe("文案");
     expect(noteKindLabel("rule")).toBe("规则");
     expect(noteKindLabel("note")).toBe("笔记");
+    expect(noteKindLabel("spec")).toBe("规格");
     expect(defaultTitleForKind("copy")).toBe("文案");
   });
 
@@ -199,6 +263,19 @@ describe("note labels and composer prompt", () => {
     expect(prompt).toContain("画布");
     expect(prompt).toContain("note-1");
     expect(prompt).not.toContain("upsert_canvas_note");
+  });
+
+  it("asks the agent to write project copy onto the card", () => {
+    const prompt = composerPromptForTextTask({
+      task: "copy",
+      noteId: "note-9",
+      sourcePrompt: "招聘雷达",
+    });
+    expect(prompt).toContain("文案");
+    expect(prompt).toContain("note-9");
+    expect(prompt).toContain("招聘雷达");
+    expect(prompt).toContain("画布");
+    expect(prompt).not.toContain("策划案");
   });
 });
 

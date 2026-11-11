@@ -16,6 +16,7 @@ import {
   buildDirectionAdjustForm,
   isDirectionAdjustMessage,
 } from "../discovery-gate";
+import { isVibeMode, questionsForStudioMode } from "../studio-mode";
 
 export interface DiscoveryQuestion {
   id: string;
@@ -86,12 +87,16 @@ export const askDiscoveryTool: AgentTool = {
               ctx.project?.targetId
             )
           : buildDefaultDiscoveryForm(ctx.userMessage, ctx.project?.targetId);
+    const source = incoming.length > 0 ? incoming : (fallback?.questions ?? []);
+    const questions = isVibeMode(ctx.project)
+      ? questionsForStudioMode(source, "vibe")
+      : source;
     const formData: DiscoveryFormData = {
       title: String(args.title ?? fallback?.title ?? "快速需求确认 — 30秒"),
       description: args.description
         ? String(args.description)
         : fallback?.description,
-      questions: incoming.length > 0 ? incoming : (fallback?.questions ?? []),
+      questions: questions.length > 0 ? questions : source,
     };
 
     // 存入 scratch，stream-adapter 会读取并发射事件

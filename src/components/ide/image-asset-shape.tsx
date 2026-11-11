@@ -143,6 +143,11 @@ function ImageAssetShapeView({ shape }: { shape: ImageAssetShape }) {
     const p = s.projects[shape.props.projectId];
     return p?.assets?.find((a) => a.id === shape.props.assetId);
   });
+  const isCurrentStyle = useProjectStore(
+    (s) =>
+      s.projects[shape.props.projectId]?.designDirection?.styleSourceAssetId ===
+      shape.props.assetId
+  );
   const markMode = useAssetMarkStore((s) => s.mode);
   const markAssetId = useAssetMarkStore((s) => s.assetId);
   const draft = useAssetMarkStore((s) => s.draft);
@@ -240,8 +245,6 @@ function ImageAssetShapeView({ shape }: { shape: ImageAssetShape }) {
         return;
       }
       const key = `${shape.id}:${src.slice(0, 64)}:${naturalW}x${naturalH}`;
-      if (fittedNaturalKeyRef.current === key) return;
-
       const { w, h } = displaySizeForImageAsset(naturalW, naturalH);
       const curW = shape.props.w;
       const curH = shape.props.h;
@@ -252,6 +255,7 @@ function ImageAssetShapeView({ shape }: { shape: ImageAssetShape }) {
         fittedNaturalKeyRef.current = key;
         return;
       }
+      if (fittedNaturalKeyRef.current === key && !aspectOff) return;
 
       fittedNaturalKeyRef.current = key;
     editor.updateShapes([
@@ -392,14 +396,14 @@ function ImageAssetShapeView({ shape }: { shape: ImageAssetShape }) {
         padding: 0,
         borderRadius: PHOTO_RADIUS,
         overflow: "visible",
-        background: c.surfaceMuted,
-        border: isEmptySlot && !showLoading ? `1.5px dashed ${c.border}` : "none",
+        background: isEmptySlot && !showLoading ? c.surface : c.surfaceMuted,
+        border: isEmptySlot && !showLoading ? `1px solid ${c.border}` : "none",
         boxShadow: isMarkTarget
           ? `0 0 0 2px #EF4444, ${c.cardShadow}`
           : isSelected
             ? `0 0 0 2px ${c.primary}, ${c.cardShadowHover}`
             : isEmptySlot
-              ? "none"
+              ? c.cardShadow
               : c.cardShadow,
         pointerEvents: "none",
         opacity: isFailed ? 0.78 : 1,
@@ -473,29 +477,13 @@ function ImageAssetShapeView({ shape }: { shape: ImageAssetShape }) {
             ) : statusKey === "cancelled" ? (
               "已取消"
             ) : isEmptySlot ? (
-              <>
-                <span
-                  style={{
-                    display: "grid",
-                    placeItems: "center",
-                    width: 52,
-                    height: 52,
-                    borderRadius: 16,
-                    background: c.surface,
-                    border: `1px solid ${c.border}`,
-                    color: c.textMuted,
-                    boxShadow: c.cardShadow,
-                  }}
-                >
-                  <ImageIcon size={24} strokeWidth={1.5} aria-hidden />
+              <div className="vad-artwork-empty">
+                <span className="vad-artwork-empty-mark" aria-hidden>
+                  <ImageIcon size={20} strokeWidth={1.6} />
                 </span>
-                <span style={{ fontWeight: 600, color: c.text, fontSize: 12 }}>
-                  图片
-                </span>
-                <span style={{ fontSize: 10, color: c.textMuted, maxWidth: 140 }}>
-                  在右侧描述后生成
-                </span>
-              </>
+                <strong>等待画面</strong>
+                <span>在右侧描述后生成</span>
+              </div>
             ) : (
               "暂无预览"
             )}
@@ -624,6 +612,23 @@ function ImageAssetShapeView({ shape }: { shape: ImageAssetShape }) {
         ) : null}
         {!showLoading && !isFailed && asset?.source !== "materialized" ? (
           <ImplementationBadge projectId={shape.props.projectId} assetId={shape.props.assetId} />
+        ) : null}
+        {isCurrentStyle ? (
+          <span
+            style={{
+              position: "absolute",
+              left: 8,
+              bottom: 8,
+              padding: "3px 8px",
+              borderRadius: 999,
+              background: c.primary,
+              color: c.surface,
+              fontSize: 11,
+              pointerEvents: "none",
+            }}
+          >
+            当前
+          </span>
         ) : null}
       </div>
     </HTMLContainer>

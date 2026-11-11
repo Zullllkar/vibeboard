@@ -5,6 +5,13 @@
 
 import type { ImageAsset, ReferenceAsset } from "./assets-schema";
 
+/** 已经落成的图片。占位 SVG / 空 src 不算。 */
+export function isPersistedImageSrc(src: string | undefined): boolean {
+  if (!src) return false;
+  if (src.startsWith("/api/assets/")) return true;
+  return /^data:image\/(?:png|jpeg|jpg|webp)/i.test(src);
+}
+
 /** 出现在画布上的素材（失败/取消/废弃均不占位） */
 export function isCanvasVisibleAsset(asset: ImageAsset): boolean {
   const status = asset.status ?? "candidate";
@@ -42,7 +49,19 @@ export function mergeAssetsPreferDiscarded(
 
   const mergedNext = next.map((asset) => {
     const old = prevById.get(asset.id);
-    if (old?.status === "discarded" && asset.status !== "discarded") {
+    if (!old) return asset;
+    if (
+      old.status !== "discarded" &&
+      isPersistedImageSrc(old.src) &&
+      asset.status === "discarded" &&
+      !isPersistedImageSrc(asset.src)
+    ) {
+      return old;
+    }
+    if (old.status === "discarded" && asset.status !== "discarded") {
+      if (!isPersistedImageSrc(old.src) && isPersistedImageSrc(asset.src)) {
+        return asset;
+      }
       return { ...asset, status: "discarded" as const };
     }
     return asset;

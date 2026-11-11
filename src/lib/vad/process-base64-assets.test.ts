@@ -70,6 +70,22 @@ describe("processBase64Assets", () => {
     );
   });
 
+  it("writes a multi-megabyte data URL without scanning the payload with a regexp", async () => {
+    const { processBase64Assets } = await import("./persist");
+    const id = "pending-direct-large-0";
+    const payload = "A".repeat(1_500_000);
+    const [out] = await processBase64Assets("QI0M0xQ80A", [
+      { id, src: `data:image/png;base64,${payload}` },
+    ]);
+    expect(out.src).toBe(
+      "/api/assets/QI0M0xQ80A/assets/pending-direct-large-0.png"
+    );
+    const disk = await readFile(
+      join(tempRoot.current, "QI0M0xQ80A", "assets", "pending-direct-large-0.png")
+    );
+    expect(disk.length).toBeGreaterThan(1_000_000);
+  });
+
   it("leaves url-encoded svg placeholders in memory instead of writing garbage files", async () => {
     const { processBase64Assets } = await import("./persist");
     const { GENERATING_PLACEHOLDER_SRC } = await import(

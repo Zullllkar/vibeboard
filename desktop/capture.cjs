@@ -56,6 +56,7 @@ function parseCaptureRequest(body) {
       width: clampInt(raw.width, MIN_EDGE, MAX_WIDTH, DEFAULT_WIDTH),
       height: clampInt(raw.height, MIN_EDGE, MAX_HEIGHT, DEFAULT_HEIGHT),
       fullPage: raw.fullPage !== false,
+      includeDom: raw.includeDom === true,
       delayMs: clampInt(raw.delayMs, 0, MAX_DELAY_MS, DEFAULT_DELAY_MS),
       timeoutMs: clampInt(raw.timeoutMs, 3_000, MAX_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
     },
@@ -102,9 +103,137 @@ function withTimeout(promise, ms, label) {
 }
 
 /**
+ * Runs inside the captured page. Returns a compact, serializable DOM snapshot:
+ * visible nodes only, normalized bboxes, computed styles, leaf text, stable path.
+ * The comparator in src/lib/fidelity consumes this.
+ */
+function extractDomInPage() {
+  const MAX_NODES = 2000;
+  const MAX_TEXT = 160;
+  const width = Math.max(
+    document.documentElement ? document.documentElement.scrollWidth : 0,
+    window.innerWidth,
+    1
+  );
+  const height = Math.max(
+    document.documentElement ? document.documentElement.scrollHeight : 0,
+    window.innerHeight,
+    1
+  );
+  const clamp01 = (value) => Math.max(0, Math.min(1, value));
+  const num = (value) => {
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const implicitRole = (el) => {
+    const tag = el.tagName.toLowerCase();
+    if (tag === "button") return "button";
+    if (tag === "a" && el.getAttribute("href")) return "link";
+    if (tag === "nav") return "navigation";
+    if (tag === "header") return "banner";
+    if (tag === "footer") return "contentinfo";
+    if (tag === "main") return "main";
+    if (tag === "aside") return "complementary";
+    if (tag === "img") return "img";
+    if (tag === "input") return el.type || "textbox";
+    return "";
+  };
+  const pathFor = (el) => {
+    if (el.id) return "#" + el.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1 && parts.length < 5) {
+      let part = node.tagName.toLowerCase();
+      const className = (node.getAttribute("class") || "").trim().split(/\s+/)[0];
+      if (className) part += "." + className;
+      const parent = node.parentElement;
+      if (parent) {
+        const same = Array.from(parent.children).filter((child) => child.tagName === node.tagName);
+        if (same.length > 1) part += ":nth-of-type(" + (same.indexOf(node) + 1) + ")";
+      }
+      parts.unshift(part);
+      node = parent;
+    }
+    return parts.join(" > ");
+  };
+
+  const nodes = [];
+  let truncated = false;
+  const all = document.body ? document.body.querySelectorAll("*") : [];
+  for (const el of all) {
+    if (nodes.length >= MAX_NODES) {
+      truncated = true;
+      break;
+    }
+    const tag = el.tagName.toLowerCase();
+    if (["script", "style", "noscript", "template", "head", "meta", "link"].includes(tag)) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) continue;
+    const style = getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden" || num(style.opacity) === 0) continue;
+
+    let text = "";
+    if (tag === "input" || tag === "textarea") {
+      text = el.value || el.placeholder || "";
+    } else if (el.children.length === 0) {
+      text = (el.textContent || "").replace(/\s+/g, " ").trim();
+    } else if (["button", "a", "label", "summary"].includes(tag) || el.getAttribute("role") === "button") {
+      text = (el.textContent || "").replace(/\s+/g, " ").trim();
+    }
+    if (text.length > MAX_TEXT) text = text.slice(0, MAX_TEXT);
+
+    const src = el.currentSrc || el.src || "";
+    const safeSrc =
+      typeof src === "string" && src.length < 500 && /^(https?:\/\/|\/)/i.test(src) ? src : "";
+
+    nodes.push({
+      path: pathFor(el),
+      tag,
+      role: el.getAttribute("role") || implicitRole(el) || undefined,
+      name: el.getAttribute("aria-label") || el.getAttribute("alt") || el.getAttribute("title") || undefined,
+      text: text || undefined,
+      bbox: {
+        x: clamp01(rect.left / width),
+        y: clamp01(rect.top / height),
+        w: clamp01(rect.width / width),
+        h: clamp01(rect.height / height),
+      },
+      styles: {
+        color: style.color || "",
+        backgroundColor: style.backgroundColor || "",
+        fontSize: num(style.fontSize),
+        fontWeight: num(style.fontWeight),
+        lineHeight: num(style.lineHeight),
+        letterSpacing: num(style.letterSpacing),
+        fontFamily: (style.fontFamily || "").slice(0, 80),
+        borderRadius: num(style.borderRadius),
+        boxShadow: (style.boxShadow || "").slice(0, 120),
+        opacity: Number.isFinite(num(style.opacity)) ? num(style.opacity) : 1,
+        zIndex: num(style.zIndex),
+        display: style.display || "",
+        position: style.position || "",
+      },
+      src: safeSrc || undefined,
+      visible: true,
+    });
+  }
+
+  return {
+    version: 1,
+    url: location.href,
+    width,
+    height,
+    nodes,
+    truncated,
+    capturedAt: new Date().toISOString(),
+  };
+}
+const DOM_EXTRACT_SCRIPT = `(${extractDomInPage.toString()})()`;
+
+/**
  * 用隐藏离屏窗口截图。
  * @param {typeof import('electron').BrowserWindow} BrowserWindow
- * @param {{url:string,width:number,height:number,fullPage:boolean,delayMs:number,timeoutMs:number}} request
+ * @param {{url:string,width:number,height:number,fullPage:boolean,includeDom:boolean,delayMs:number,timeoutMs:number}} request
  */
 async function captureWithWindow(BrowserWindow, request) {
   const deadline = Date.now() + request.timeoutMs;
@@ -127,6 +256,14 @@ async function captureWithWindow(BrowserWindow, request) {
     win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     await withTimeout(win.loadURL(request.url), remaining(), "page load");
     await sleep(Math.min(request.delayMs, remaining()));
+    await withTimeout(
+      win.webContents.executeJavaScript(
+        "document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true",
+        true
+      ),
+      remaining(),
+      "fonts"
+    ).catch(() => undefined);
 
     if (request.fullPage) {
       const docHeight = await withTimeout(
@@ -145,6 +282,20 @@ async function captureWithWindow(BrowserWindow, request) {
       }
     }
 
+    let dom;
+    let domError;
+    if (request.includeDom) {
+      try {
+        dom = await withTimeout(
+          win.webContents.executeJavaScript(DOM_EXTRACT_SCRIPT, true),
+          remaining(),
+          "extract dom"
+        );
+      } catch (err) {
+        domError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
     const image = await withTimeout(win.webContents.capturePage(), remaining(), "capturePage");
     const size = image.getSize();
     return {
@@ -154,6 +305,8 @@ async function captureWithWindow(BrowserWindow, request) {
       height: size.height,
       finalUrl: win.webContents.getURL(),
       title: win.webContents.getTitle(),
+      dom,
+      domError,
     };
   } finally {
     if (!win.isDestroyed()) win.destroy();

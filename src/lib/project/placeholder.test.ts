@@ -17,17 +17,20 @@ describe("createPlaceholderProject", () => {
     expect(project.targetId).toBeUndefined();
   });
 
-  it("stores the selected project Skill binding", () => {
+  it("does not bind a skill or design system when the project is created", () => {
     const project = createPlaceholderProject("abc123", "远程协作工具官网", {
       targetId: "ui-visual",
       skillId: "saas-landing",
       skillVersion: "0.1.0",
       designSystemId: "linear-like",
+      directionCardId: "linear",
     });
 
-    expect(project.skillId).toBe("saas-landing");
-    expect(project.skillVersion).toBe("0.1.0");
-    expect(project.designSystemId).toBe("linear-like");
+    expect(project.skillId).toBeUndefined();
+    expect(project.skillVersion).toBeUndefined();
+    expect(project.designSystemId).toBeUndefined();
+    expect(project.directionCardId).toBeUndefined();
+    expect(project.targetId).toBe("ui-visual");
   });
 
   it("binds a user workspace folder so files are not stored in the app data dir", () => {

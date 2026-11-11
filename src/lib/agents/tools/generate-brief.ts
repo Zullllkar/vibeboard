@@ -43,7 +43,6 @@ export const generateBriefTool: AgentTool = {
       buildDesignContext({
         brief,
         targetId,
-        designSystemId: ctx.agentCtx.designSystem?.manifest.name,
         now,
       });
     ctx.agentCtx.scratch.designContext = designContext;
@@ -60,14 +59,10 @@ export const generateBriefTool: AgentTool = {
       pages: ctx.project?.pages ?? [],
       critique: ctx.project?.critique,
       critiqueHistory: ctx.project?.critiqueHistory,
-      skillId: ctx.agentCtx.skill?.manifest.name ?? ctx.project?.skillId,
-      designSystemId:
-        ctx.agentCtx.designSystem?.manifest.name ?? ctx.project?.designSystemId,
       targetId,
       targetLocked: extractTargetIdFromDiscoveryAnswer(idea)
         ? true
         : ctx.project?.targetLocked,
-      directionCardId: ctx.project?.directionCardId,
       assets: ctx.project?.assets,
       references: ctx.project?.references,
     });

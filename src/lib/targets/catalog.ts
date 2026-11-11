@@ -569,7 +569,7 @@ const RECIPES: Record<TargetId, TargetRecipe> = {
   "style-board": {
     id: "style-board",
     label: "风格探索",
-    goalSentence: "用户目标 = 并排试方向，再锁定到某一条正式目标",
+    goalSentence: "用户目标 = 并排看不同设计，可以不选",
     placeholder: "品类 + 三个词，或丢参考图。例如：茶饮 纸感 雾绿 手写",
     examples: [
       "茶饮 纸感 雾绿 手写",
@@ -603,7 +603,7 @@ const RECIPES: Record<TargetId, TargetRecipe> = {
       width: 1024,
       height: 1024,
       emptyTitle: "还没有风格卡",
-      emptyHint: "三个词或一张参考，并排试方向",
+      emptyHint: "同一主题并排看差别，可以不选",
     },
     promptContract: [
       "Draft style frames. Same subject, different treatment.",

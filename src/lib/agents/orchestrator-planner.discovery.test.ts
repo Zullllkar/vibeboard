@@ -119,6 +119,44 @@ describe("decideToolsFallback discovery gates", () => {
     expect(decision.calls[0]?.args?.assetId).toBe("asset_liked");
   });
 
+  it("keeps the style form path when the project stays in directed mode", () => {
+    const decision = decideToolsFallback(
+      {
+        id: "p1",
+        title: "游戏点子墙",
+        pages: [],
+        studioMode: "directed",
+      } as never,
+      "[需求确认回答]\n**要做什么？**：落地页 / 官网 [value: landing]"
+    );
+    expect(decision.calls.map((c) => c.name)).toEqual([
+      "generate_brief",
+      "plan_design_direction",
+      "confirm_direction",
+    ]);
+  });
+
+  it("in vibe mode skips the single style lock and asks for three different pictures", () => {
+    const decision = decideToolsFallback(
+      {
+        id: "p1",
+        title: "游戏点子墙",
+        rawIdea: "游戏点子收集网站",
+        pages: [],
+        studioMode: "vibe",
+      } as never,
+      "[需求确认回答]\n**要做什么？**：落地页 / 官网 [value: landing]"
+    );
+    expect(decision.calls.map((c) => c.name)).toEqual([
+      "generate_brief",
+      "generate_images",
+    ]);
+    const prompts = decision.calls[1]?.args?.prompts as string[];
+    expect(prompts).toHaveLength(3);
+    expect(new Set(prompts).size).toBe(3);
+    expect(prompts.join("\n")).not.toContain("plan_design_direction");
+  });
+
   it("confirms direction instead of generating images when direction is missing", () => {
     const decision = decideToolsFallback(
       {

@@ -300,6 +300,29 @@ describe("releaseStuckGeneratingAssets", () => {
     });
     expect(next[0]?.status).toBe("discarded");
   });
+
+  it("does not discard a finished image or another batch still pending", () => {
+    const finished = asset({
+      id: "done",
+      src: "/api/assets/p/assets/done.png",
+      status: "generating",
+      model: "tt-image-2.5",
+      batchId: "batch-9",
+    });
+    const other = asset({
+      id: "other",
+      src: "data:image/svg+xml,y",
+      status: "generating",
+      model: "pending",
+      batchId: "batch-8",
+    });
+    const next = releaseStuckGeneratingAssets([finished, other], {
+      hasActiveImageJob: false,
+      terminalBatchId: "batch-9",
+    });
+    expect(next.find((item) => item.id === "done")?.status).toBe("generating");
+    expect(next.find((item) => item.id === "other")?.status).toBe("generating");
+  });
 });
 
 describe("absorbIntoEmptySpawnSlots", () => {

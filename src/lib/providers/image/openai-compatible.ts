@@ -30,8 +30,9 @@ export function createOpenAICompatibleImageProvider(
     async generateImage(input: ImageGenerateInput) {
       const startedAt = Date.now();
       const gptImage = isGptImageModel(cfg.model);
-      const size =
-        cfg.defaultSize ?? pickSize(input.width, input.height, cfg.model);
+      const size = input.size
+        ? imageApiSize(input.width, input.height, cfg.model, input.size)
+        : (cfg.defaultSize ?? imageApiSize(input.width, input.height, cfg.model, "auto"));
       const usableRefs = pickUsableReferenceImages(input.referenceImages);
 
       const body: Record<string, unknown> = {
@@ -114,6 +115,26 @@ export function resolveImageApiPath(
   return hasReferenceImages ? "/images/edits" : "/images/generations";
 }
 
+/**
+ * 用户有时把完整生图地址填进 Base URL（例如 /v1/media/generate）。
+ * 这里先收回根路径，再接 OpenAI 兼容的 /images/*，避免拼出 /media/generate/images/generations。
+ */
+export function resolveImageEndpoint(
+  baseURL: string,
+  suffix: "/images/generations" | "/images/edits"
+): string {
+  const trimmed = baseURL.trim();
+  try {
+    const url = new URL(trimmed);
+    const path = url.pathname
+      .replace(/\/+$/, "")
+      .replace(/\/(?:images\/generations|images\/edits|media\/generate)$/, "");
+    return `${url.origin}${path}${suffix}`;
+  } catch {
+    return trimmed.replace(/\/+$/, "") + suffix;
+  }
+}
+
 export function shouldFallbackToGenerations(status: number): boolean {
   return status === 404 || status === 405;
 }
@@ -156,8 +177,8 @@ async function postImageApi(
     ...authHeaders,
     "content-type": "application/json",
   };
-  const editsUrl = joinURL(cfg.baseURL, "/images/edits");
-  const generationsUrl = joinURL(cfg.baseURL, "/images/generations");
+  const editsUrl = resolveImageEndpoint(cfg.baseURL, "/images/edits");
+  const generationsUrl = resolveImageEndpoint(cfg.baseURL, "/images/generations");
   const primaryUrl = usableRefs.length > 0 ? editsUrl : generationsUrl;
 
   let res = await fetchWithRetry(
@@ -239,10 +260,6 @@ function dataUrlToFile(src: string | undefined): File | null {
   return new File([bytes], "reference.png", { type: match[1] });
 }
 
-function joinURL(base: string, path: string) {
-  return base.replace(/\/+$/, "") + (path.startsWith("/") ? path : "/" + path);
-}
-
 function shortHost(url: string) {
   try {
     return new URL(url).host;
@@ -251,22 +268,27 @@ function shortHost(url: string) {
   }
 }
 
-/**
- * 把任意 width×height 映射到 OpenAI 接受的尺寸档：
- *   - 接近正方形 → 1024x1024
- *   - 横向 → 1792x1024
- *   - 纵向 → 1024x1792
- * 兼容服务（如 SiliconFlow）大多接受 "<W>x<H>" 自定义尺寸；
- * 但 OpenAI dall-e-3 严格三档。为最大兼容，统一映射到三档。
- */
-function pickSize(w: number, h: number, model: string): string {
+export function imageApiSize(
+  w: number,
+  h: number,
+  model: string,
+  requested = "auto"
+): string {
+  if (!requested || requested === "auto") {
+    return /dall-e/i.test(model) ? "1024x1024" : "auto";
+  }
   const ratio = w / Math.max(1, h);
   if (isGptImageModel(model)) {
     if (ratio > 1.2) return "1536x1024";
     if (ratio < 0.85) return "1024x1536";
     return "1024x1024";
   }
-  if (ratio > 1.4) return "1792x1024";
-  if (ratio < 0.72) return "1024x1792";
-  return "1024x1024";
+  if (/dall-e/i.test(model)) {
+    if (ratio > 1.4) return "1792x1024";
+    if (ratio < 0.72) return "1024x1792";
+    return "1024x1024";
+  }
+  const explicit = requested.match(/^(\d+)x(\d+)$/);
+  if (explicit) return `${explicit[1]}x${explicit[2]}`;
+  return "auto";
 }

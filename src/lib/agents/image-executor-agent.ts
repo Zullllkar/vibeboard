@@ -13,6 +13,8 @@ import type { ProductBrief } from "@/lib/project/schema";
 import type { ImageAsset } from "@/lib/project/assets-schema";
 import type { CanvasPage } from "@/lib/canvas/schema";
 import type { ImagePlan } from "./image-planner-agent";
+import { compileVisualBrief, resolveTaskReferenceImages } from "./image";
+import { loadProjectFromVad } from "@/lib/vad/storage";
 import { assertRealImageForGeneration } from "@/lib/providers/validate";
 import type { ProviderConfig } from "@/lib/providers/registry";
 import type { PipelineLogger } from "./pipeline-logger";
@@ -103,6 +105,35 @@ export const ImageExecutorAgent: Agent<
       (ctx.scratch.referenceLabels as string[] | undefined) ?? []
     ).filter(Boolean);
 
+    // Per-task references: visualBrief.referenceIds wins; otherwise use the
+    // global references collected for this run. Load the project once, and only
+    // when at least one task actually cites a reference.
+    const needsProjectRefs = plan.tasks.some(
+      (task) => (task.visualBrief?.referenceIds ?? []).length > 0,
+    );
+    const project = needsProjectRefs
+      ? await loadProjectFromVad(ctx.projectId).catch(() => null)
+      : null;
+    const taskReferenceCache = new Map<string, Promise<string[]>>();
+    const resolveTaskReferences = (task: ImagePlan["tasks"][number]) => {
+      const ids = (task.visualBrief?.referenceIds ?? []).map((id) => id.trim()).filter(Boolean);
+      if (ids.length === 0) return Promise.resolve(referenceImages);
+      const key = ids.join("|");
+      const cached = taskReferenceCache.get(key);
+      if (cached) return cached;
+      const pending = resolveTaskReferenceImages({
+        project,
+        projectId: ctx.projectId,
+        taskReferenceIds: ids,
+        globalReferenceImages: referenceImages,
+      }).catch((err) => {
+        logger?.info("image_task", `参考图解析失败：${(err as Error).message}`);
+        return referenceImages;
+      });
+      taskReferenceCache.set(key, pending);
+      return pending;
+    };
+
     logger?.info("image_execute", `开始生图 ${plan.tasks.length} 张`, {
       batchId,
       referenceCount: referenceImages.length,
@@ -131,9 +162,18 @@ export const ImageExecutorAgent: Agent<
         continue;
       }
 
-      const basePrompt = visualPrefix
-        ? `${visualPrefix}, ${task.imagePrompt}`
-        : task.imagePrompt;
+      const taskReferenceImages = await resolveTaskReferences(task);
+
+      // A compiled visualBrief is already a complete, visual-only prompt.
+      // Do not prepend the legacy global style prefix: it often contains the
+      // exact generic adjectives the compiler/linter removed.
+      const taskPrompt =
+        task.imagePrompt.trim() ||
+        (task.visualBrief ? compileVisualBrief(task.visualBrief) : "");
+      const basePrompt =
+        visualPrefix && !task.visualBrief
+          ? `${visualPrefix}, ${taskPrompt}`
+          : taskPrompt;
       const fullPrompt = groundPromptToCitedReferences(basePrompt, {
         cited,
         labels: referenceLabels,
@@ -156,7 +196,7 @@ export const ImageExecutorAgent: Agent<
             : `生图中：${task.pageId} / ${task.nodeId}`,
           {
             prompt: fullPrompt.slice(0, 120),
-            referenceCount: referenceImages.length,
+            referenceCount: taskReferenceImages.length,
           }
         );
         const gen = await ctx.providers.image.generateImage({
@@ -164,7 +204,7 @@ export const ImageExecutorAgent: Agent<
           width: task.width,
           height: task.height,
           referenceImages:
-            referenceImages.length > 0 ? referenceImages : undefined,
+            taskReferenceImages.length > 0 ? taskReferenceImages : undefined,
           signal,
         });
         const durationMs = Date.now() - t0;
@@ -195,7 +235,7 @@ export const ImageExecutorAgent: Agent<
           batchId,
           status: isStandalone ? "candidate" : "used",
           usedInPages: isStandalone ? [] : [task.pageId],
-          source: referenceImages.length > 0 ? "edited" : "generated",
+          source: taskReferenceImages.length > 0 ? "edited" : "generated",
           tags: task.role ? [task.role] : undefined,
           role: task.role,
         };
@@ -229,7 +269,7 @@ export const ImageExecutorAgent: Agent<
           prompt: fullPrompt,
           width: task.width,
           height: task.height,
-          referenceImages,
+          referenceImages: taskReferenceImages,
           seed: gen.seed,
           durationMs,
           status: "succeeded",
@@ -268,7 +308,7 @@ export const ImageExecutorAgent: Agent<
           prompt: fullPrompt,
           width: task.width,
           height: task.height,
-          referenceImages,
+          referenceImages: taskReferenceImages,
           status: "failed",
           error: e instanceof Error ? e.message : String(e),
         });

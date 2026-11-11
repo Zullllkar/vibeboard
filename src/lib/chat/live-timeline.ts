@@ -173,9 +173,11 @@ export type TimelineItem =
       prompts?: string[];
       reason: string;
       count: number;
+      sizeMode?: "auto" | "fixed";
       width: number;
       height: number;
       role?: string;
+      referencePreviews?: Array<{ id: string; label: string; src?: string }>;
       confirmed: boolean;
     }
   | {
@@ -930,6 +932,14 @@ export function appendLiveEvents(
         ) {
           continue;
         }
+        if (d.runId) {
+          for (let i = items.length - 1; i >= 0; i--) {
+            const previous = items[i];
+            if (previous.kind === "tool_confirm" && previous.runId === d.runId) {
+              items.splice(i, 1);
+            }
+          }
+        }
         if (isImageTool) {
           for (let i = items.length - 1; i >= 0; i--) {
             if (isImageApprovalCard(items[i])) items.splice(i, 1);
@@ -1170,12 +1180,12 @@ export function buildChatTimelineTurns(
 }
 
 function groupTimelineTurns(items: TimelineItem[], isStreaming: boolean): TimelineTurn[] {
-  const turns: TimelineTurn[] = [];
+  const raw: Array<{ user?: Extract<TimelineItem, { kind: "user" }>; items: TimelineItem[] }> = [];
   let current: { user?: Extract<TimelineItem, { kind: "user" }>; items: TimelineItem[] } | null = null;
 
   for (const item of items) {
     if (item.kind === "user") {
-      if (current) turns.push(buildTurn(current, isStreaming, turns.length));
+      if (current) raw.push(current);
       current = { user: item, items: [] };
       continue;
     }
@@ -1183,8 +1193,36 @@ function groupTimelineTurns(items: TimelineItem[], isStreaming: boolean): Timeli
     current.items.push(item);
   }
 
-  if (current) turns.push(buildTurn(current, isStreaming, turns.length));
-  return turns;
+  if (current) raw.push(current);
+  parkEarlierJobsOnTheirTurn(raw);
+  return raw.map((turn, index) =>
+    buildTurn(turn, isStreaming && index === raw.length - 1, index)
+  );
+}
+
+function parkEarlierJobsOnTheirTurn(
+  turns: Array<{ user?: Extract<TimelineItem, { kind: "user" }>; items: TimelineItem[] }>
+): void {
+  if (turns.length < 2) return;
+  const last = turns[turns.length - 1];
+  const userAt = last.user?.createdAt ? Date.parse(last.user.createdAt) : Number.NaN;
+  if (!Number.isFinite(userAt)) return;
+  const kept: TimelineItem[] = [];
+  const earlier: TimelineItem[] = [];
+  for (const item of last.items) {
+    if (
+      item.kind === "job" &&
+      typeof item.startedAt === "number" &&
+      item.startedAt < userAt
+    ) {
+      earlier.push(item);
+    } else {
+      kept.push(item);
+    }
+  }
+  if (earlier.length === 0) return;
+  turns[turns.length - 2].items.push(...earlier);
+  last.items = kept;
 }
 
 function buildTurn(
@@ -1220,9 +1258,42 @@ function buildTurn(
  * 不再把整段工具提到 assistant 正文之前。
  */
 function groupTurnItems(items: TimelineItem[]): TimelineItem[] {
-  return attachJobsBesideTools(
-    compactPipelineLogsInPlace(compactThoughtsInPlace(items))
+  return placeFinishedImageJobsBeforeApproval(
+    attachJobsBesideTools(
+      compactPipelineLogsInPlace(compactThoughtsInPlace(items))
+    )
   );
+}
+
+function placeFinishedImageJobsBeforeApproval(items: TimelineItem[]): TimelineItem[] {
+  const firstApproval = items.findIndex(isImageApprovalCard);
+  if (firstApproval < 0) return items;
+  const approvalToolIds = new Set(
+    items.flatMap((item) =>
+      item.kind === "tool_confirm" && isImageApprovalCard(item) && item.toolCallId
+        ? [item.toolCallId]
+        : []
+    )
+  );
+  const moved: TimelineItem[] = [];
+  const rest: TimelineItem[] = [];
+  items.forEach((item, index) => {
+    const finishedPriorJob =
+      index > firstApproval &&
+      item.kind === "job" &&
+      (item.jobType === "image_generation" ||
+        item.jobType === "direct_image_generation") &&
+      (item.status === "completed" ||
+        item.status === "failed" ||
+        item.status === "cancelled") &&
+      (!item.toolCallId || !approvalToolIds.has(item.toolCallId));
+    if (finishedPriorJob) moved.push(item);
+    else rest.push(item);
+  });
+  if (moved.length === 0) return items;
+  const approvalAt = rest.findIndex(isImageApprovalCard);
+  if (approvalAt < 0) return items;
+  return [...rest.slice(0, approvalAt), ...moved, ...rest.slice(approvalAt)];
 }
 
 /** 把连续的 pipeline_log 压成 pipeline_logs，保留与 tool/assistant 的穿插位置 */

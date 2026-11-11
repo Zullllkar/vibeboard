@@ -9,6 +9,8 @@ export interface ImageGenerateInput {
   prompt: string;
   width: number;
   height: number;
+  /** "auto" 或 "宽x高"。未传时由各 provider 自己决定。 */
+  size?: string;
   /** base64 或 url 形式的参考图。 */
   referenceImages?: string[];
   /** 可选 negative prompt。 */

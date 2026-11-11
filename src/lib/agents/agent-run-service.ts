@@ -38,6 +38,8 @@ import { collectProjectReferenceImages } from "./reference-images";
 import { isWaitingChatTurn, runBlocksNewAgentTurn } from "./run-lock";
 import { grantToolForProject, grantToolInProject } from "./tool-approval-policy";
 import {
+  alignPendingToClickedApproval,
+  finishRunStatus,
   isImageApprovalTool,
   isReinterruptOfApprovedImageTool,
   shouldResumeGraphInterrupt,
@@ -385,7 +387,8 @@ class AgentRunService {
         type: "llm.completed",
         data: { runId },
       };
-      run.status = waitingForUser ? "waiting_user" : "completed";
+      const terminal = finishRunStatus(waitingForUser, run.pendingToolApproval);
+      run.status = terminal;
       run.endedAt = Date.now();
       await saveRun(input.agentCtx.projectId, run).catch(() => {});
       await hookManager.afterRun({
@@ -394,10 +397,10 @@ class AgentRunService {
         projectId: input.agentCtx.projectId,
         phase: run.phase,
         project: input.project,
-        status: waitingForUser ? "waiting_user" : "completed",
+        status: terminal,
         durationMs: Date.now() - runStartTime,
       });
-      yield waitingForUser
+      yield terminal === "waiting_user"
         ? {
             type: "run.waiting_user",
             data: { runId, reason: "user_input_required" },
@@ -406,7 +409,7 @@ class AgentRunService {
             type: "run.completed",
             data: { runId, waitingForUser: false },
           };
-      if (waitingForUser) {
+      if (terminal === "waiting_user") {
         abortController.abort();
       }
 
@@ -629,10 +632,18 @@ class AgentRunService {
     const run = this.runs.get(runId);
     if (!run) throw new Error(`Run not found: ${runId}`);
 
+    const aligned = alignPendingToClickedApproval(run.pendingToolApproval, {
+      approvalId,
+      args,
+    });
+    if (!aligned) throw new Error("No matching pending tool approval");
+    run.pendingToolApproval = {
+      ...aligned,
+      riskLevel: (aligned.riskLevel as RiskLevel | undefined) ?? "moderate",
+      reason: aligned.reason ?? "User confirmed this card.",
+      requestedAt: aligned.requestedAt ?? Date.now(),
+    };
     const pending = run.pendingToolApproval;
-    if (!pending || pending.approvalId !== approvalId) {
-      throw new Error("No matching pending tool approval");
-    }
     if (pending.status !== "pending") {
       yield {
         type: "tool.completed",
@@ -796,6 +807,7 @@ class AgentRunService {
             }
           );
           let waitingForUser = false;
+          let graphRanTool = false;
           for await (const event of adaptStreamEvents(
             stream,
             runId,
@@ -816,6 +828,7 @@ class AgentRunService {
               saveRun(input.agentCtx.projectId, run).catch(() => {});
             } else if (event.type === "tool.completed") {
               const d = event.data as { toolName?: string };
+              if (d.toolName === pending.toolName) graphRanTool = true;
               run.currentStep = d.toolName ? `${d.toolName}:done` : undefined;
               run.lastHeartbeatAt = Date.now();
               saveRun(input.agentCtx.projectId, run).catch(() => {});
@@ -835,6 +848,8 @@ class AgentRunService {
               ) {
                 break;
               }
+              const nextPending = pendingFromConfirmEvent(event);
+              if (nextPending) run.pendingToolApproval = nextPending;
               waitingForUser = true;
               break;
             }
@@ -859,8 +874,18 @@ class AgentRunService {
             };
             return;
           }
-          if (!isImageApprovalTool(pending.toolName)) {
-            run.status = "completed";
+          if (graphRanTool || !isImageApprovalTool(pending.toolName)) {
+            if (
+              run.pendingToolApproval?.approvalId === approvalId &&
+              run.pendingToolApproval.status === "pending"
+            ) {
+              run.pendingToolApproval = {
+                ...run.pendingToolApproval,
+                status: "approved",
+              };
+            }
+            const terminal = finishRunStatus(false, run.pendingToolApproval);
+            run.status = terminal;
             run.endedAt = Date.now();
             run.lastHeartbeatAt = Date.now();
             saveRun(input.agentCtx.projectId, run).catch(() => {});
@@ -870,18 +895,23 @@ class AgentRunService {
               projectId: input.agentCtx.projectId,
               phase: run.phase,
               project: input.project,
-              status: "completed",
+              status: terminal,
               durationMs: Date.now() - runStartTime,
             });
-            yield {
-              type: "run.completed",
-              data: {
-                runId,
-                approvalId,
-                waitingForUser: false,
-                approvedTool: pending.toolName,
-              },
-            };
+            yield terminal === "waiting_user"
+              ? {
+                  type: "run.waiting_user",
+                  data: { runId, reason: "user_input_required" },
+                }
+              : {
+                  type: "run.completed",
+                  data: {
+                    runId,
+                    approvalId,
+                    waitingForUser: false,
+                    approvedTool: pending.toolName,
+                  },
+                };
             return;
           }
         } catch (graphErr) {
@@ -1003,7 +1033,7 @@ class AgentRunService {
       if (typeof currentPhase === "string") {
         run.phase = currentPhase as AgentPhase;
       }
-      run.status = "completed";
+      run.status = finishRunStatus(false, run.pendingToolApproval);
       run.endedAt = Date.now();
       run.lastHeartbeatAt = Date.now();
       saveRun(input.agentCtx.projectId, run).catch(() => {});
@@ -1211,6 +1241,60 @@ class AgentRunService {
 }
 
 export const agentRuns = new AgentRunService();
+
+function pendingFromConfirmEvent(event: WsEvent): PendingToolApproval | undefined {
+  if (event.type !== "tool.confirm" && event.type !== "image_generation.confirm") return undefined;
+  const data =
+    event.data && typeof event.data === "object"
+      ? (event.data as Record<string, unknown>)
+      : undefined;
+  if (!data) return undefined;
+  if (event.type === "tool.confirm") {
+    if (typeof data.approvalId !== "string" || typeof data.toolName !== "string") return undefined;
+    const args =
+      data.args && typeof data.args === "object" && !Array.isArray(data.args)
+        ? (data.args as Record<string, unknown>)
+        : {};
+    return {
+      approvalId: data.approvalId,
+      checkpointInterruptId:
+        typeof data.checkpointInterruptId === "string" ? data.checkpointInterruptId : undefined,
+      pausedByInterrupt: data.pausedByInterrupt === true || Boolean(data.checkpointInterruptId),
+      toolName: data.toolName,
+      toolCallId: typeof data.toolCallId === "string" ? data.toolCallId : undefined,
+      args,
+      riskLevel: (data.riskLevel as RiskLevel | undefined) ?? "moderate",
+      reason:
+        typeof data.reason === "string" ? data.reason : "Tool execution requires confirmation.",
+      model: typeof data.model === "string" ? data.model : undefined,
+      estimatedSeconds: typeof data.estimatedSeconds === "number" ? data.estimatedSeconds : undefined,
+      affectedAssets: Array.isArray(data.affectedAssets)
+        ? data.affectedAssets.filter((id): id is string => typeof id === "string")
+        : undefined,
+      requestedAt: Date.now(),
+      status: "pending",
+    };
+  }
+  const approvalId = typeof data.approvalId === "string" ? data.approvalId : undefined;
+  if (!approvalId) return undefined;
+  return {
+    approvalId,
+    toolName: "generate_images",
+    args: {
+      prompt: data.prompt,
+      prompts: data.prompts,
+      count: data.count,
+      width: data.width,
+      height: data.height,
+      role: data.role,
+    },
+    riskLevel: "moderate",
+    reason:
+      typeof data.reason === "string" ? data.reason : "Image generation requires confirmation.",
+    requestedAt: Date.now(),
+    status: "pending",
+  };
+}
 
 async function drainImageGraphInterrupt(input: {
   run: AgentRun;

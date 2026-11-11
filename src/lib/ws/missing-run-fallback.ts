@@ -6,6 +6,7 @@ import { formatImageConfirmMarker } from "@/lib/agents/image-prompts";
 import {
   isImageApprovalTool,
   isResumableImageApprovalRun,
+  toolNameFromApprovalId,
 } from "@/lib/agents/tool-confirmation-pause";
 import type { WsCommand } from "./types";
 
@@ -71,10 +72,15 @@ export function matchWaitingApproval<T extends WaitingRun>(
 
 /** 把审批命令绑到实际还活着的 run，避免卡片 runId / approvalId 过期。 */
 export function bindCommandToWaitingRun(cmd: WsCommand, run: WaitingRun): WsCommand {
+  const pendingId = run.pendingToolApproval?.approvalId;
+  const sameTool =
+    !cmd.approvalId ||
+    !pendingId ||
+    toolNameFromApprovalId(cmd.approvalId) === toolNameFromApprovalId(pendingId);
   return {
     ...cmd,
     runId: run.runId,
-    approvalId: run.pendingToolApproval?.approvalId ?? cmd.approvalId,
+    approvalId: sameTool ? (pendingId ?? cmd.approvalId) : cmd.approvalId,
     threadId: run.threadId ?? cmd.threadId,
   };
 }

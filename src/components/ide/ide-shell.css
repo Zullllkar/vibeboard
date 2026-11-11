@@ -1260,35 +1260,56 @@ html.dark .vad-ide-canvas {
 .vad-cite-menu {
   position: fixed;
   z-index: 81;
-  width: 276px;
-  padding: 10px 8px 8px;
-  border: 1px solid var(--ide-line);
-  border-radius: 16px;
-  background: var(--ide-float-bg);
-  box-shadow: var(--ide-float-shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  width: 280px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 6%, transparent);
   pointer-events: auto;
+}
+
+.vad-cite-kicker {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .vad-cite-menu-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px 10px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 12px 0 14px;
+  background: transparent;
   color: var(--foreground);
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.vad-cite-menu-head:active {
+  cursor: grabbing;
+}
+
+.vad-cite-menu-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .vad-cite-menu-head button {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   place-items: center;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   color: var(--muted-strong);
   cursor: pointer;
@@ -1300,8 +1321,11 @@ html.dark .vad-ide-canvas {
 }
 
 .vad-cite-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 0;
-  padding: 0;
+  padding: 8px 14px 14px;
   list-style: none;
 }
 
@@ -1310,32 +1334,27 @@ html.dark .vad-ide-canvas {
   width: 100%;
   align-items: center;
   gap: 10px;
-  padding: 8px 8px;
+  min-height: 52px;
+  padding: 8px 12px;
   border: 0;
-  border-radius: 12px;
-  background: transparent;
+  border-radius: 10px;
+  background: var(--ide-fill);
   color: var(--foreground);
   text-align: left;
   cursor: pointer;
 }
 
-.vad-cite-menu-item:hover {
-  background: var(--ide-fill);
+.vad-cite-menu-item:hover,
+.vad-cite-menu-item:focus-visible {
+  background: var(--ide-fill-hover);
+  outline: none;
 }
 
 .vad-cite-menu-icon {
   display: grid;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  flex: 0 0 auto;
   place-items: center;
-  border-radius: 12px;
-  background: var(--ide-fill);
   color: var(--muted-strong);
-}
-
-.vad-cite-menu-item:hover .vad-cite-menu-icon {
-  color: var(--foreground);
 }
 
 .vad-cite-menu-copy {
@@ -1358,7 +1377,180 @@ html.dark .vad-ide-canvas {
 }
 
 .vad-text-note {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--foreground) 8%, transparent);
   font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  pointer-events: none;
+}
+
+.vad-text-note input,
+.vad-text-note textarea,
+.vad-text-note button,
+.vad-text-note-kinds {
+  pointer-events: auto;
+}
+
+.vad-text-note {
+  border-radius: 18px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.vad-text-note-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 10px 12px 0 14px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.vad-text-note--spec {
+  box-shadow: inset 3px 0 0 var(--foreground);
+}
+
+.vad-text-note-label span {
+  line-height: 1;
+}
+
+.vad-text-note-label .vad-text-note-remove {
+  margin-left: auto;
+}
+
+.vad-text-note-mark {
+  display: grid;
+  flex: 1;
+  place-items: center;
+}
+
+.vad-text-note-mark span {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background:
+    linear-gradient(var(--muted), var(--muted)) center 16px / 22px 2px no-repeat,
+    linear-gradient(var(--muted), var(--muted)) center 26px / 22px 2px no-repeat,
+    linear-gradient(var(--muted), var(--muted)) center 36px / 22px 2px no-repeat,
+    color-mix(in srgb, var(--foreground) 5%, var(--surface));
+}
+
+.vad-text-note-try {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.vad-text-note-try p {
+  margin: 0 2px 2px;
+  color: var(--muted-strong);
+  font-size: 12px;
+}
+
+.vad-text-note-try-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ide-fill);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vad-text-note-try-btn span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vad-text-note-try-btn strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.vad-text-note-try-btn em {
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.vad-text-note-try-btn svg {
+  color: var(--muted-strong);
+}
+
+.vad-text-note-try-btn:hover {
+  background: var(--ide-fill-hover);
+}
+
+.vad-text-note-read {
+  flex: 1;
+  margin: 0;
+  padding: 8px 16px 16px;
+  overflow: auto;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+.vad-artwork-empty {
+  position: absolute;
+  inset: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 3%, transparent), transparent 42%),
+    var(--surface);
+  box-shadow: inset 0 0 0 1px var(--ide-line);
+  text-align: center;
+}
+
+.vad-artwork-empty-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.vad-artwork-empty strong {
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.vad-artwork-empty span:last-child {
+  max-width: 148px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vad-cite-menu-item {
+    transition: none;
+  }
 }
 
 .vad-text-note-head {
@@ -1396,11 +1588,22 @@ html.dark .vad-ide-canvas {
   color: var(--foreground);
 }
 
+.vad-text-note-script-bar .vad-text-note-remove:hover,
+.vad-text-note-rule-bar .vad-text-note-remove:hover {
+  background: color-mix(in srgb, var(--background) 16%, transparent);
+  color: var(--background);
+}
+
+.vad-text-note--note {
+  padding: 14px 14px 12px;
+}
+
 .vad-text-note-kinds {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 8px;
+  margin: 0;
+  padding: 0 10px 8px;
 }
 
 .vad-text-note-chip,
@@ -1443,12 +1646,14 @@ html.dark .vad-ide-canvas {
 .vad-text-note-body,
 .vad-text-note-body-static {
   flex: 1;
+  min-height: 0;
   margin: 0;
+  padding: 8px 16px 16px;
   border: 0;
   background: transparent;
   color: var(--foreground);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.6;
   resize: none;
   outline: none;
 }

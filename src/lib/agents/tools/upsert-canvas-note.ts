@@ -15,7 +15,7 @@ import type { AgentTool, ToolContext, ToolResult } from "./types";
 export const upsertCanvasNoteTool: AgentTool = {
   name: "upsert_canvas_note",
   description:
-    "在画布上创建或更新文本卡片（脚本 / 文案 / 规则 / 笔记）。引用图片生成文字后必须把完整内容写到对应 noteId，不要只停在对话里。",
+    "在画布上创建或更新文本卡片（脚本 / 文案 / 规则 / 规格 / 笔记）。规格卡片是生图的风格提示，写完整风格后生图会按它出图。引用图片生成文字后必须把完整内容写到对应 noteId，不要只停在对话里。",
   inputPhase: ["GENERATION", "REVIEW"],
   outputPhase: "REVIEW",
   riskLevel: "safe",
@@ -25,7 +25,7 @@ export const upsertCanvasNoteTool: AgentTool = {
       id: { type: "string", description: "已有卡片 id；省略则新建" },
       kind: {
         type: "string",
-        enum: ["script", "copy", "rule", "note"],
+        enum: ["script", "copy", "rule", "note", "spec"],
         description: "卡片类型",
       },
       title: { type: "string", description: "卡片标题" },
@@ -84,7 +84,7 @@ export const upsertCanvasNoteTool: AgentTool = {
     const updated = ProjectFileSchema.parse(next);
     const note = (updated.canvasNotes ?? []).find((item) => item.id === noteId);
     return {
-      summary: `已更新画布${note?.kind === "script" ? "脚本" : note?.kind === "copy" ? "文案" : note?.kind === "rule" ? "规则" : "笔记"}卡片 ${noteId?.slice(0, 8)}`,
+      summary: `已更新画布${note?.kind === "script" ? "脚本" : note?.kind === "copy" ? "文案" : note?.kind === "rule" ? "规则" : note?.kind === "spec" ? "规格" : "笔记"}卡片 ${noteId?.slice(0, 8)}`,
       updatedProject: updated,
       data: { noteId, kind: note?.kind, title: note?.title },
     };

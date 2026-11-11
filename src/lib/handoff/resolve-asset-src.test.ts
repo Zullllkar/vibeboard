@@ -3,9 +3,13 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/vad/paths", () => ({
-  projectDir: (id: string) => join(mockRoot, id),
-}));
+vi.mock("@/lib/vad/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/vad/paths")>();
+  return {
+    ...actual,
+    projectDir: (id: string) => join(mockRoot, id),
+  };
+});
 
 let mockRoot = "";
 

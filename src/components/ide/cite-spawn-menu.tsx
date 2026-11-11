@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlignLeft, Image as ImageIcon, ListChecks, Plus, ScrollText, X } from "lucide-react";
+import { AlignLeft, Image as ImageIcon, ListChecks, Palette, Plus, ScrollText, X } from "lucide-react";
 import { useEditor, useValue } from "tldraw";
 import { useCanvasUiStore } from "@/store/canvas-ui-store";
 import { useProjectStore } from "@/store/project-store";
@@ -28,6 +28,7 @@ const ICONS: Record<CiteSpawnItem["id"], typeof ScrollText> = {
   script: ScrollText,
   copy: AlignLeft,
   rule: ListChecks,
+  spec: Palette,
   image: ImageIcon,
 };
 
@@ -43,8 +44,11 @@ type PullState = {
 };
 
 export function CiteSpawnMenu() {
+  const editor = useEditor();
   const menu = useCanvasUiStore((s) => s.citeMenu);
   const closeCiteMenu = useCanvasUiStore((s) => s.closeCiteMenu);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; dx: number; dy: number } | null>(null);
 
   useEffect(() => {
     if (!menu) return;
@@ -66,14 +70,30 @@ export function CiteSpawnMenu() {
     };
   }, [menu, closeCiteMenu]);
 
-  if (!menu || typeof document === "undefined") return null;
+  const openKey = menu
+    ? `${menu.assetId}:${menu.fromClientX}:${menu.fromClientY}`
+    : "";
+  const [placedKey, setPlacedKey] = useState(openKey);
+  if (openKey !== placedKey) {
+    setPlacedKey(openKey);
+    if (!menu || typeof window === "undefined") {
+      setPos(null);
+    } else {
+      const anchorX = menu.toClientX ?? menu.fromClientX + 72;
+      const anchorY = menu.toClientY ?? menu.fromClientY;
+      setPos({
+        left: Math.min(anchorX, window.innerWidth - 320),
+        top: Math.min(Math.max(24, anchorY - 80), window.innerHeight - 420),
+      });
+    }
+  }
 
-  const anchorX = menu.toClientX ?? menu.fromClientX + 72;
-  const anchorY = menu.toClientY ?? menu.fromClientY;
-  const menuLeft = Math.min(anchorX, window.innerWidth - 300);
-  const menuTop = Math.min(Math.max(24, anchorY - 80), window.innerHeight - 360);
+  if (!menu || !pos || typeof document === "undefined") return null;
+
+  const menuLeft = pos.left;
+  const menuTop = pos.top;
   const attachX = menuLeft;
-  const attachY = menuTop + 28;
+  const attachY = menuTop + 36;
 
   return createPortal(
     <div className="vad-cite-layer">
@@ -94,8 +114,44 @@ export function CiteSpawnMenu() {
         style={{ left: menuLeft, top: menuTop }}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <header className="vad-cite-menu-head">
-          <span>引用该图生成</span>
+        <header
+          className="vad-cite-menu-head"
+          onPointerDown={(event) => {
+            if ((event.target as Element).closest("button")) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            dragRef.current = {
+              pointerId: event.pointerId,
+              dx: event.clientX - pos.left,
+              dy: event.clientY - pos.top,
+            };
+          }}
+          onPointerMove={(event) => {
+            const drag = dragRef.current;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            setPos({
+              left: event.clientX - drag.dx,
+              top: event.clientY - drag.dy,
+            });
+          }}
+          onPointerUp={(event) => {
+            const drag = dragRef.current;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            dragRef.current = null;
+            const left = event.clientX - drag.dx;
+            const top = event.clientY - drag.dy;
+            const page = editor.screenToPage({ x: left, y: top });
+            useCanvasUiStore.getState().moveCiteMenu({
+              toClientX: left,
+              toClientY: top,
+              dropAt: { x: page.x, y: page.y },
+            });
+          }}
+        >
+          <div className="vad-cite-menu-title">
+            <ImageIcon size={14} strokeWidth={1.75} aria-hidden />
+            <span>引用该图生成</span>
+          </div>
           <button type="button" aria-label="关闭" onClick={() => closeCiteMenu()}>
             <X size={14} strokeWidth={1.75} />
           </button>
@@ -103,18 +159,20 @@ export function CiteSpawnMenu() {
         <ul className="vad-cite-menu-list">
           {CITE_SPAWN_ITEMS.map((item) => {
             const Icon = ICONS[item.id];
+            if (!Icon) return null;
             return (
               <li key={item.id}>
                 <button
                   type="button"
                   className="vad-cite-menu-item"
+                  data-kind={item.id}
                   onClick={() => {
                     applyCiteChoice(menu, item);
                     closeCiteMenu();
                   }}
                 >
                   <span className="vad-cite-menu-icon" aria-hidden>
-                    <Icon size={16} strokeWidth={1.7} />
+                    <Icon size={15} strokeWidth={1.75} />
                   </span>
                   <span className="vad-cite-menu-copy">
                     <strong>{item.label}</strong>

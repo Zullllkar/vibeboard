@@ -326,6 +326,113 @@ describe("buildChatTimeline", () => {
     expect(turns[0].status).toBe("cancelled");
   });
 
+  it("keeps a previous finished image job above the next confirmation card", () => {
+    const timeline = buildChatTimeline(
+      [
+        {
+          id: "user-queue",
+          role: "user",
+          content: "生成功能宣传页面",
+          createdAt: new Date(1000).toISOString(),
+        },
+      ],
+      [
+        {
+          id: "confirm-new",
+          type: "tool.confirm",
+          data: {
+            runId: "run-new",
+            approvalId: "run-new:generate_images",
+            toolName: "generate_images",
+            toolCallId: "call-new",
+            args: { prompt: "one feature page", prompts: ["one feature page"], count: 1 },
+          },
+          at: 2000,
+        },
+        {
+          id: "job-old-done",
+          type: "job.completed",
+          data: {
+            jobId: "job-old",
+            jobType: "direct_image_generation",
+            toolCallId: "call-old",
+            batchId: "batch-old",
+            detail: { completed: 3, failed: 0, total: 3, message: "已完成 3/3" },
+          },
+          at: 3000,
+        },
+      ],
+      false
+    );
+    const confirmAt = timeline.findIndex((item) => item.kind === "tool_confirm");
+    const jobAt = timeline.findIndex((item) => item.kind === "job");
+    expect(confirmAt).toBeGreaterThanOrEqual(0);
+    expect(jobAt).toBeGreaterThanOrEqual(0);
+    expect(jobAt).toBeLessThan(confirmAt);
+  });
+
+  it("keeps a finished earlier image job out of the new streaming task", () => {
+    const turns = buildChatTimelineTurns(
+      [
+        {
+          id: "user-old",
+          role: "user",
+          content: "上一轮",
+          createdAt: new Date(1000).toISOString(),
+        },
+        {
+          id: "assistant-old",
+          role: "assistant",
+          content: "上一轮已经生成完",
+          createdAt: new Date(1800).toISOString(),
+        },
+        {
+          id: "user-new",
+          role: "user",
+          content: "新任务",
+          createdAt: new Date(5000).toISOString(),
+        },
+      ],
+      [
+        {
+          id: "job-old-done",
+          type: "job.completed",
+          data: {
+            jobId: "job-old",
+            jobType: "direct_image_generation",
+            toolCallId: "call-old",
+            detail: { completed: 3, failed: 0, total: 3 },
+          },
+          at: 2000,
+        },
+        {
+          id: "job-new",
+          type: "job.progress",
+          data: {
+            jobId: "job-new",
+            jobType: "direct_image_generation",
+            toolCallId: "call-new",
+            progress: 20,
+            detail: { completed: 0, failed: 0, total: 1, message: "Generating" },
+          },
+          at: 6000,
+        },
+      ],
+      true
+    );
+
+    expect(turns).toHaveLength(2);
+    expect(turns[0].status).toBe("completed");
+    expect(turns[0].counts.jobs).toBe(1);
+    expect(turns[1].status).toBe("running");
+    expect(turns[1].counts.jobs).toBe(1);
+    expect(
+      turns[1].items
+        .filter((item) => item.kind === "job")
+        .map((item) => item.jobId)
+    ).toEqual(["job-new"]);
+  });
+
   it("turns generic tool confirmation requests into waiting turns", () => {
     const turns = buildChatTimelineTurns(
       [
@@ -396,6 +503,43 @@ describe("buildChatTimeline", () => {
     expect(String(item && "args" in item ? item.args?.prompt : "")).not.toContain(
       "normal assistant text"
     );
+  });
+
+  it("keeps only the latest confirmation when delete and generate both pause", () => {
+    const timeline = buildChatTimeline(
+      [],
+      [
+        {
+          id: "confirm-delete",
+          type: "tool.confirm",
+          data: {
+            runId: "run-1",
+            approvalId: "run-1:batch_delete_assets:call-del",
+            toolName: "batch_delete_assets",
+            args: { assetIds: ["a"] },
+          },
+          at: 1100,
+        },
+        {
+          id: "confirm-image",
+          type: "tool.confirm",
+          data: {
+            runId: "run-1",
+            approvalId: "run-1:generate_images:call-img",
+            toolName: "generate_images",
+            args: { prompt: "three homepages", count: 3 },
+          },
+          at: 1200,
+        },
+      ],
+      false
+    );
+    const cards = timeline.filter((entry) => entry.kind === "tool_confirm");
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      toolName: "generate_images",
+      approvalId: "run-1:generate_images:call-img",
+    });
   });
 
   it("keeps a single generate_images approval card when two confirms arrive", () => {

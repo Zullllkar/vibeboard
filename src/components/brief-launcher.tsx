@@ -23,7 +23,6 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ComposerModelChip } from "@/components/brand/composer-model-marks";
-import { SkillPicker } from "@/components/skills/skill-picker";
 import { WorkspacePicker } from "@/components/studio/workspace-picker";
 import { cn } from "@/lib/cn";
 import { resolveBoundProjectId } from "@/lib/studio/bound-project-id";
@@ -31,8 +30,6 @@ import { usePreferences } from "@/lib/preferences";
 import { createPlaceholderProject } from "@/lib/project/placeholder";
 import { isMockImageConfig, isMockLlmConfig } from "@/lib/providers/validate";
 import { openSettings } from "@/lib/settings/events";
-import { resolveHomeSkillChoice } from "@/lib/skills/selection";
-import { useSkillCatalog } from "@/lib/skills/use-skill-catalog";
 import { getTargetRecipe, HOME_TARGET_IDS, type TargetId } from "@/lib/targets/catalog";
 import { useHydrated, useProviderStoreHydrated } from "@/lib/use-hydrated";
 import {
@@ -65,13 +62,10 @@ export function BriefLauncher({ className }: { className?: string }) {
   const [navigating, setNavigating] = useState(false);
   const [targetId, setTargetId] = useState<TargetId>("ui-visual");
   const [targetLocked, setTargetLocked] = useState(false);
-  const [skillId, setSkillId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<HomeWorkspace | null>(null);
   const [targetOpen, setTargetOpen] = useState(false);
   const targetRef = useRef<HTMLDivElement>(null);
   const recipe = getTargetRecipe(targetId);
-  const { skills, loading: skillsLoading } = useSkillCatalog();
-  const selectedSkill = skills.find((skill) => skill.name === skillId);
 
   useEffect(() => {
     setWorkspace(readStoredHomeWorkspace());
@@ -85,17 +79,6 @@ export function BriefLauncher({ className }: { className?: string }) {
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [targetOpen]);
-
-  useEffect(() => {
-    setSkillId(
-      (current) =>
-        resolveHomeSkillChoice({
-          current,
-          skills,
-          targetId,
-        }) ?? null,
-    );
-  }, [skills, targetId]);
 
   const chipReady = hydrated && providerHydrated;
 
@@ -134,11 +117,10 @@ export function BriefLauncher({ className }: { className?: string }) {
         existingId: existing?.id,
         boundProjectId: bound.projectId,
       }) ?? nanoid(10);
-    const runConfig = {
-      ...providerConfig,
-      skillId: selectedSkill?.name,
-      designSystemId: selectedSkill?.recommendedDesignSystem ?? providerConfig.designSystemId,
-    };
+    const { skillId: _ignoredSkill, designSystemId: _ignoredSystem, ...runConfig } =
+      providerConfig;
+    void _ignoredSkill;
+    void _ignoredSystem;
     const stub = existing
       ? {
           ...existing,
@@ -149,16 +131,14 @@ export function BriefLauncher({ className }: { className?: string }) {
           workspacePath: bound.path || existing.workspacePath,
           targetId,
           targetLocked,
-          skillId: selectedSkill?.name,
-          skillVersion: selectedSkill?.version,
-          designSystemId: runConfig.designSystemId,
+          skillId: undefined,
+          skillVersion: undefined,
+          designSystemId: undefined,
+          directionCardId: undefined,
         }
       : createPlaceholderProject(projectId, trimmed, {
           targetId,
           targetLocked,
-          skillId: selectedSkill?.name,
-          skillVersion: selectedSkill?.version,
-          designSystemId: runConfig.designSystemId,
           workspacePath: bound.path || undefined,
         });
 
@@ -247,14 +227,6 @@ export function BriefLauncher({ className }: { className?: string }) {
                 </div>
               ) : null}
             </div>
-            <SkillPicker
-              variant="chip"
-              skills={skills}
-              value={skillId ?? undefined}
-              targetId={targetId}
-              disabled={skillsLoading || navigating}
-              onChange={(skill) => setSkillId(skill ? skill.name : null)}
-            />
             <ComposerModelChip
               config={providerConfig}
               disabled={navigating}

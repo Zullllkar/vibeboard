@@ -19,6 +19,8 @@ import { resolveAssetImageDataUrl } from "@/lib/handoff/resolve-asset-src";
 import { pickPrimaryMockup } from "@/lib/handoff/select-assets";
 import { compressImageDataUrlForVision } from "@/lib/handoff/vision-image";
 import type { LayoutIR } from "@/lib/handoff/layout-ir";
+import { compareDomToLayout } from "@/lib/fidelity/compare";
+import type { DomSnapshot, FidelityReportV2 } from "@/lib/fidelity/types";
 import type { ProjectFile } from "@/lib/project/schema";
 import type { LlmProvider } from "@/lib/providers/llm/types";
 import { isMockLlmText } from "@/lib/providers/llm/utils";
@@ -74,7 +76,8 @@ export interface ImplementationReport extends Omit<Review, "score" | "verdict"> 
   reportedSummary: string;
   clientName?: string;
   screenshotFile?: string;
-  source: "vision" | "heuristic";
+  source: "vision" | "heuristic" | "dom";
+  fidelity?: FidelityReportV2;
   model?: string;
   warnings?: string[];
   createdAt: string;
@@ -114,6 +117,8 @@ export async function reviewImplementation(input: {
   url?: string;
   clientName?: string;
   llm?: LlmProvider;
+  /** Optional deterministic DOM snapshot captured with the screenshot. */
+  dom?: DomSnapshot;
 }): Promise<ImplementationReport> {
   const { project, reportedSummary, screenshotDataUrl } = input;
   const warnings: string[] = [];
@@ -121,6 +126,7 @@ export async function reviewImplementation(input: {
     ? (project.assets ?? []).find((a) => a.id === input.assetId)
     : pickPrimaryMockup(project);
   const layout = asset ? project.materializations?.[asset.id]?.layout : undefined;
+  const fidelity = compareDomToLayout(layout, input.dom);
 
   const shot = await compressImageDataUrlForVision(screenshotDataUrl, { maxEdge: 1400 });
   let designDataUrl: string | null = null;
@@ -167,7 +173,21 @@ export async function reviewImplementation(input: {
     warnings.push("No LLM provider available; open Vibeboard and configure a vision-capable model for full review.");
   }
 
-  const finalReview = review ?? unreviewedResult(reportedSummary, layout, warnings);
+  const finalReview =
+    review ??
+    (fidelity
+      ? reviewFromFidelity(fidelity)
+      : unreviewedResult(reportedSummary, layout, warnings));
+  if (!review && fidelity) {
+    source = "dom";
+    warnings.push("DOM-only review; VLM review unavailable. Calibrate against human labels before treating this as final.");
+  } else if (review && fidelity) {
+    const high = fidelity.deviations.filter((deviation) => deviation.severity === "high").length;
+    if (high > 0) {
+      warnings.push(`DOM comparison found ${high} high-severity deviation(s); see fidelity.deviations.`);
+    }
+  }
+
   const report: ImplementationReport = {
     ...finalReview,
     version: 1,
@@ -178,6 +198,7 @@ export async function reviewImplementation(input: {
     reportedSummary,
     clientName: input.clientName,
     source,
+    fidelity: fidelity ?? undefined,
     model,
     warnings: warnings.length ? warnings : undefined,
     createdAt: new Date().toISOString(),
@@ -228,6 +249,23 @@ function buildPrompt(
 
   lines.push("", "Image [1] is the approved design. Image [2] is the implementation. Compare them.");
   return lines.filter(Boolean).join("\n");
+}
+
+function reviewFromFidelity(fidelity: FidelityReportV2): Review {
+  return {
+    score: fidelity.score,
+    verdict: fidelity.verdict,
+    summary: `DOM comparison: ${fidelity.matchedSlots.length} matched, ${fidelity.unmatchedSlots.length} missing.`,
+    matched: fidelity.matchedSlots,
+    deviations: fidelity.deviations.map((deviation) => ({
+      slot: deviation.slot,
+      kind: deviation.kind,
+      severity: deviation.severity,
+      expected: deviation.expected,
+      actual: deviation.actual,
+      fixHint: deviation.fixHint,
+    })),
+  };
 }
 
 function unreviewedResult(

@@ -17,8 +17,10 @@ import {
   ChevronDown,
   ChevronRight,
   Clock3,
+  Compass,
   History,
   Image as ImageIcon,
+  LayoutGrid,
   Loader2,
   Package,
   Palette,
@@ -256,6 +258,81 @@ function pendingApprovalToTimelineEvent(run: AgentRunSummary): ChatLiveEvent | n
       restored: true,
     },
   };
+}
+
+function StudioModePick({ project }: { project: ProjectFile }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const mode = project.studioMode === "vibe" ? "vibe" : "directed";
+  const options = [
+    { id: "directed" as const, label: "定方向", hint: "先填风格，再出同一套", icon: Compass },
+    { id: "vibe" as const, label: "找感觉", hint: "先看三张不同画面", icon: LayoutGrid },
+  ];
+  const current = options.find((option) => option.id === mode) ?? options[0];
+  const CurrentIcon = current.icon;
+
+  useEffect(() => {
+    if (!open) return;
+    function close(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="composer-model-menu" ref={rootRef}>
+      <button
+        type="button"
+        className="vad-agent-model-btn"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="工作模式"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <CurrentIcon className="vad-studio-mode-mark size-3.5" strokeWidth={1.75} aria-hidden />
+        <span className="composer-model-chip-label">{current.label}</span>
+        <ChevronDown
+          className={`size-3 composer-model-chevron${open ? " is-open" : ""}`}
+          aria-hidden
+        />
+      </button>
+      {open ? (
+        <div className="composer-model-popover vad-studio-mode-menu" role="listbox" aria-label="工作模式">
+          {options.map((option) => {
+            const selected = option.id === mode;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className="vad-studio-mode-option"
+                onClick={() => {
+                  useProjectStore.getState().upsert({ ...project, studioMode: option.id });
+                  setOpen(false);
+                }}
+              >
+                <span className="vad-studio-mode-glyph" aria-hidden>
+                  <option.icon className="size-3.5" strokeWidth={1.75} />
+                </span>
+                <strong>{option.label}</strong>
+                <small>{option.hint}</small>
+                {selected ? <Check className="size-3.5" aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function ChatStreamView({
@@ -690,7 +767,9 @@ export function ChatStreamView({
     const terminalJobId = String(terminalData?.jobId ?? "");
     const batchId = terminalData?.batchId;
     if (terminalJobId && cleanedTerminalImageJobsRef.current.has(terminalJobId)) return;
-    const currentAssets = project.assets ?? [];
+    const latestProject =
+      useProjectStore.getState().projects[project.id] ?? project;
+    const currentAssets = latestProject.assets ?? [];
     const nextAssets = releaseStuckGeneratingAssets(currentAssets, {
       hasActiveImageJob: false,
       terminalBatchId: typeof batchId === "string" ? batchId : null,
@@ -698,8 +777,8 @@ export function ChatStreamView({
     if (nextAssets === currentAssets) return;
     if (terminalJobId) cleanedTerminalImageJobsRef.current.add(terminalJobId);
     upsertProject({
-      ...project,
-      pages: project.pages,
+      ...latestProject,
+      pages: latestProject.pages,
       assets: nextAssets,
       updatedAt: new Date().toISOString(),
     });
@@ -728,7 +807,9 @@ export function ChatStreamView({
         event.type === "job.progress"
     );
     if (hasActiveImageJob) return;
-    const currentAssets = project.assets ?? [];
+    const latestProject =
+      useProjectStore.getState().projects[project.id] ?? project;
+    const currentAssets = latestProject.assets ?? [];
     const stuckKey = currentAssets
       .filter(
         (asset) =>
@@ -747,8 +828,8 @@ export function ChatStreamView({
     }
     releasedStuckAssetsKeyRef.current = stuckKey;
     upsertProject({
-      ...project,
-      pages: project.pages,
+      ...latestProject,
+      pages: latestProject.pages,
       assets: nextAssets,
       updatedAt: new Date().toISOString(),
     });
@@ -1315,11 +1396,14 @@ export function ChatStreamView({
           />
 
           <div className="flex items-center justify-between gap-2 px-2.5 pb-2 pt-0.5">
-            <ComposerModelChip
-              config={providerConfig}
-              className="vad-agent-model-btn"
-              onOpenSettings={onOpenSettings ?? (() => {})}
-            />
+            <div className="flex min-w-0 items-center gap-1">
+              <StudioModePick project={project} />
+              <ComposerModelChip
+                config={providerConfig}
+                className="vad-agent-model-btn"
+                onOpenSettings={onOpenSettings ?? (() => {})}
+              />
+            </div>
 
             <div className="flex items-center gap-0.5">
               <input

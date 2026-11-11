@@ -59,6 +59,7 @@ import { rememberLastProject } from "@/lib/studio/startup";
 import { briefDisplayFields, briefEmptyCopy } from "@/lib/targets/brief";
 import { getTargetRecipe, HOME_TARGET_IDS } from "@/lib/targets/catalog";
 import { resolveTargetId } from "@/lib/targets/resolve";
+import { showsCodeHandoff } from "@/lib/targets/comparison-axis";
 import { useProjectStoreHydrated } from "@/lib/use-hydrated";
 import { loadChatFromVad } from "@/lib/vad/chat-sync";
 import { useVadWatch } from "@/lib/vad/use-vad-watch";
@@ -984,10 +985,12 @@ function TopBar({ project, onHandoff }: { project: ProjectFile; onHandoff: () =>
         >
           <Settings className="size-4" />
         </button>
-        <button type="button" className="vad-ide-topbar-primary" onClick={onHandoff}>
-          <Package className="size-3.5" />
-          导出 Handoff
-        </button>
+        {showsCodeHandoff(resolveTargetId(project)) ? (
+          <button type="button" className="vad-ide-topbar-primary" onClick={onHandoff}>
+            <Package className="size-3.5" />
+            导出 Handoff
+          </button>
+        ) : null}
       </div>
     </header>
   );

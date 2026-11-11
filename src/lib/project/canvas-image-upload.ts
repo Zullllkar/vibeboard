@@ -55,6 +55,25 @@ export function buildUploadedImageAsset(input: {
   };
 }
 
+export async function uploadDroppedCanvasImage(
+  projectId: string,
+  assetId: string,
+  file: File
+): Promise<string> {
+  const body = new FormData();
+  body.set("file", file);
+  body.set("assetId", assetId);
+  const res = await fetch(
+    `/api/uploads?projectId=${encodeURIComponent(projectId)}`,
+    { method: "POST", body }
+  );
+  const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+  if (!res.ok || typeof data.url !== "string" || !data.url.startsWith("/api/assets/")) {
+    throw new Error(data.error || "图片没有写入项目目录");
+  }
+  return data.url;
+}
+
 export function applyUploadedImageToProject(
   project: ProjectFile,
   asset: ImageAsset

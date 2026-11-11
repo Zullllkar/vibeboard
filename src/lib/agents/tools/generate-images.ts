@@ -22,6 +22,7 @@ import {
   buildVariantImagePrompt,
   clampInt,
   isVariantImageInstruction,
+  parseRequestedImageCount,
   resolveRunDesignContext,
 } from "./utils";
 import { parseProjectFileLight } from "@/lib/project/parse-project";
@@ -44,6 +45,12 @@ import {
   type DirectImageGenerationRequest,
 } from "@/lib/agents/direct-image-generation";
 import { alignPendingGeneratingAssets, stageGeneratingAssets } from "@/lib/canvas/stage-generating-assets";
+import { resolveImageSizeRequest } from "@/lib/agents/image-size";
+import { GENERATING_PLACEHOLDER_HEIGHT, GENERATING_PLACEHOLDER_WIDTH } from "@/lib/canvas/generating-placeholder";
+import { slimReferencePreviews } from "@/lib/agents/reference-images";
+import { applyStyleSpecToPrompt, activeStyleSpec } from "@/lib/canvas/canvas-notes";
+import { isVibeMode, vibeImagePrompts, vibeLocked, vibeSubject } from "@/lib/agents/studio-mode";
+import { fitImagePromptsToEmptySlots } from "@/lib/canvas/fit-prompts-to-spawn-slots";
 import { registerAllJobHandlers } from "@/lib/agents/job/job-handlers";
 import { resolveProviders } from "@/lib/providers/registry";
 import {
@@ -58,7 +65,7 @@ export const generateImagesTool: AgentTool = {
     "Generate high-fidelity visual image assets. Always request user confirmation before submitting the image model job.",
     "Always pass prompts: string[] with one DISTINCT prompt per image. Never use count/n to repeat the same prompt.",
     "If the user asks for N images, write N different prompts (or let the system expand lock+delta). One prompt means one image.",
-    "When the user attached reference images (project.references / 【参考图】), the tool automatically feeds them into the image model; optionally pass referenceIds to prefer specific ones.",
+    "Pass referenceIds only for images the user cited in this turn. Do not attach an earlier canvas upload unless its id was cited. Uncited uploads are not references. If the project has a canvas spec note, follow that written style in every prompt.",
   ].join(" "),
   inputPhase: ["BRIEF", "DIRECTION", "ASSET_PLAN", "GENERATION"],
   outputPhase: "GENERATION",
@@ -181,7 +188,7 @@ export const generateImagesTool: AgentTool = {
       prompts: planningArgs.prompts ?? preview.prompts,
       variants: planningArgs.variants,
     });
-    const prompts = (
+    const groundedPrompts = (
       (preview.prompts?.length ? preview.prompts : normalized.prompts).filter(
         Boolean
       )
@@ -192,9 +199,39 @@ export const generateImagesTool: AgentTool = {
         userIntent: stripCitationPrefix(ctx.userMessage),
       })
     );
+    const fitted = fitImagePromptsToEmptySlots({
+      prompts: groundedPrompts,
+      assets: ctx.project.assets ?? [],
+      requestedCount: parseRequestedImageCount(ctx.userMessage ?? ""),
+    });
+    const styleSpec = activeStyleSpec(ctx.project.canvasNotes);
+    const batch = fitted.prompts.length > 0 ? fitted.prompts : groundedPrompts;
+    const fanVibe =
+      isVibeMode(ctx.project) &&
+      !vibeLocked(ctx.project) &&
+      !fitted.parentAssetId &&
+      args.confirmed !== true &&
+      !/变体|重绘|继续改|改这张|重新生成/.test(ctx.userMessage ?? "");
+    const source = fanVibe
+      ? vibeImagePrompts(vibeSubject(ctx.project, ctx.userMessage ?? ""), ctx.project.targetId)
+      : batch;
+    const prompts = source.map((item) => applyStyleSpecToPrompt(item, styleSpec));
+    const requestRefs = fitted.parentAssetId
+      ? { ...collectedRefs, parentAssetId: fitted.parentAssetId }
+      : collectedRefs;
     const count = clampInt(Math.max(1, prompts.length), 1, 8);
-    const width = clampInt(Number(args.width ?? preview.width), 256, 2048);
-    const height = clampInt(Number(args.height ?? preview.height), 256, 2048);
+    const requested = resolveImageSizeRequest({
+      userMessage: ctx.userMessage,
+      sizeMode: args.sizeMode,
+      width: args.width,
+      height: args.height,
+      preferredSize: ctx.providerConfig?.generationPrefs?.defaultImageSize,
+    });
+    const width =
+      requested.mode === "fixed" ? requested.width : GENERATING_PLACEHOLDER_WIDTH;
+    const height =
+      requested.mode === "fixed" ? requested.height : GENERATING_PLACEHOLDER_HEIGHT;
+    const size = requested.mode === "fixed" ? requested.size : "auto";
     const role =
       typeof args.role === "string" && args.role.trim()
         ? args.role.trim()
@@ -217,6 +254,11 @@ export const generateImagesTool: AgentTool = {
           ...preview,
           prompts,
           count,
+          sizeMode: requested.mode,
+          size,
+          width,
+          height,
+          referencePreviews: slimReferencePreviews(requestRefs),
         },
       };
     }
@@ -266,8 +308,9 @@ export const generateImagesTool: AgentTool = {
         prompt,
         width,
         height,
+        size,
         role,
-        collectedRefs,
+        collectedRefs: requestRefs,
       });
       const pendingAssets = alignPendingGeneratingAssets(
         ctx.project.assets ?? [],
@@ -344,8 +387,9 @@ export const generateImagesTool: AgentTool = {
       prompt,
       width,
       height,
+      size,
       role,
-      collectedRefs: { ...collectedRefs, srcs: resolvedRefs },
+      collectedRefs: { ...requestRefs, srcs: resolvedRefs },
     });
     const pendingAssets = alignPendingGeneratingAssets(
       ctx.project.assets ?? [],
@@ -426,6 +470,7 @@ function toDirectRequest(input: {
   prompt: string;
   width: number;
   height: number;
+  size: string;
   role: unknown;
   collectedRefs: CollectedReferenceImages;
 }): DirectImageGenerationRequest {
@@ -447,6 +492,7 @@ function toDirectRequest(input: {
     count: hinted.length,
     width: input.width,
     height: input.height,
+    size: input.size,
     role:
       typeof input.role === "string"
         ? (input.role as DirectImageGenerationRequest["role"])

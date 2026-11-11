@@ -15,6 +15,27 @@ import { displayAssetTitle } from "@/lib/project/asset-title";
 export const MAX_REFERENCE_IMAGES = 3;
 const FROM_ASSET_PREFIX = "from-asset-";
 
+export interface ReferencePreview {
+  id: string;
+  label: string;
+  src?: string;
+}
+
+export function slimReferencePreviews(collected: {
+  ids: string[];
+  labels: string[];
+  srcs: string[];
+}): ReferencePreview[] {
+  return collected.ids.map((id, index) => {
+    const label = collected.labels[index] || id;
+    const src = collected.srcs[index];
+    if (src && (src.startsWith("/api/assets/") || /^https?:\/\//i.test(src))) {
+      return { id, label, src };
+    }
+    return { id, label };
+  });
+}
+
 export interface CollectedReferenceImages {
   ids: string[];
   labels: string[];
@@ -28,6 +49,16 @@ export interface CollectedReferenceImages {
 type PickedRef = { id: string; label: string; src: string };
 
 /** 从 project.references 与 project.assets 收集可用参考图；preferIds 优先。 */
+/** 用户没有另点参考图时，用已经点过「用这个」的那张图。 */
+export function withAdoptedStyleReference(
+  preferIds: string[],
+  styleSourceAssetId?: string
+): string[] {
+  if (preferIds.length > 0) return preferIds;
+  if (!styleSourceAssetId?.trim()) return preferIds;
+  return [styleSourceAssetId.trim()];
+}
+
 export function collectProjectReferenceImages(
   project: ProjectFile | null | undefined,
   options?: { preferIds?: string[]; max?: number }

@@ -142,7 +142,7 @@ export const CanvasSnapshotSchema = z.object({
 /** 画布文本卡片：脚本 / 文案 / 规则 / 笔记 */
 export const CanvasNoteSchema = z.object({
   id: z.string(),
-  kind: z.enum(["script", "copy", "rule", "note"]),
+  kind: z.enum(["script", "copy", "rule", "note", "spec"]),
   title: z.string(),
   body: z.string(),
   x: z.number().optional(),
@@ -150,6 +150,8 @@ export const CanvasNoteSchema = z.object({
   w: z.number().optional(),
   h: z.number().optional(),
   parentAssetId: z.string().optional(),
+  /** 用户点「用这个」后，这张规格才进入后续生图。 */
+  adopted: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
 });
@@ -190,8 +192,16 @@ export const ProjectFileSchema = z.object({
   targetId: z.string().optional(),
   /** 首页明确点选则为 true；仅推断则为 false，可被纠正。 */
   targetLocked: z.boolean().optional(),
+  /** directed：先填风格再出同一套。vibe：先看三张不同画面，自己选。缺省 directed。 */
+  studioMode: z.enum(["directed", "vibe"]).optional(),
   /** 本目标方向库里绑中的卡。 */
   directionCardId: z.string().optional(),
+  /** 看见阶段的对照轮次。留下一边之后才是 2。 */
+  comparisonStep: z.union([z.literal(1), z.literal(2)]).optional(),
+  /** 当前在比的那一根轴。两端都不要之后会换到另一根。 */
+  comparisonAxis: z.union([z.literal(1), z.literal(2)]).optional(),
+  /** 第一轮留下的那张图。还不是全画布风格。 */
+  comparisonWinnerAssetId: z.string().optional(),
   /**
    * Image Workspace 候选图库。
    * 每张图带完整 model run metadata，可追溯到具体模型/prompt/seed。
@@ -211,6 +221,39 @@ export const ProjectFileSchema = z.object({
   canvasSnapshot: CanvasSnapshotSchema.optional(),
   /** 画布上的脚本 / 文案 / 规则卡片 */
   canvasNotes: z.array(CanvasNoteSchema).optional(),
+  /** 一轮对照：两张图、各自的规格卡，和那一句问题。 */
+  comparisonBoards: z
+    .array(
+      z.object({
+        id: z.string(),
+        question: z.string(),
+        memberAssetIds: z.array(z.string()),
+        memberNoteIds: z.array(z.string()).optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        w: z.number().optional(),
+        h: z.number().optional(),
+      })
+    )
+    .optional(),
+  /** 画布上的网站卡。只保存用户给出的地址。 */
+  websiteFrames: z
+    .array(
+      z.object({
+        id: z.string(),
+        url: z.string(),
+        /** 桌面端整页截图写进素材库后的 id。嵌入失败时卡上显示这张图。 */
+        shotAssetId: z.string().optional(),
+        /** acceptance 是实现页，不是新的风格方向。 */
+        purpose: z.enum(["reference", "acceptance"]).optional(),
+        acceptanceAssetId: z.string().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        w: z.number().optional(),
+        h: z.number().optional(),
+      })
+    )
+    .optional(),
   brandKit: BrandKitSchema.optional(),
   /**
    * 关联的代码仓库：保存 / 导出时把 handoff 包同步到该目录，

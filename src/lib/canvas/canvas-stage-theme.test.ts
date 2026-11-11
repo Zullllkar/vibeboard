@@ -71,6 +71,33 @@ describe("canvas stage matches the IDE page", () => {
     );
   });
 
+  it("gives each cite action and spawned card its own chrome", () => {
+    const menu = readFileSync(
+      resolve(process.cwd(), "src/components/ide/cite-spawn-menu.tsx"),
+      "utf8",
+    );
+    const note = readFileSync(
+      resolve(process.cwd(), "src/components/ide/text-note-shape.tsx"),
+      "utf8",
+    );
+    const shell = readCss("src/components/ide/ide-shell.css");
+    expect(menu).toMatch(/data-kind=\{item\.id\}/);
+    expect(note).toMatch(/onDoubleClick/);
+    expect(note).toMatch(/beginTextNoteEdit/);
+    expect(note).toMatch(/label: "脚本"/);
+    expect(note).toMatch(/label: "文案"/);
+    expect(note).not.toMatch(/自己编写内容/);
+    expect(note).not.toMatch(/剧本生成/);
+    expect(note).not.toMatch(/策划案/);
+    expect(note).not.toMatch(/提示词生成/);
+    expect(shell).toMatch(/\.vad-cite-menu-item\[data-kind="image"\]/);
+    expect(shell).toMatch(/\.vad-text-note-try/);
+    expect(shell).toMatch(/\.vad-artwork-empty/);
+    expect(note).toMatch(/pointerEvents:\s*"none"/);
+    expect(menu).toMatch(/vad-cite-menu-head/);
+    expect(menu).toMatch(/setPointerCapture/);
+  });
+
   it("deletes text notes on pointer up instead of a cancelled click", () => {
     const shape = readFileSync(
       resolve(process.cwd(), "src/components/ide/text-note-shape.tsx"),

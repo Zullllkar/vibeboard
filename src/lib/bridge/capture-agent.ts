@@ -10,6 +10,7 @@
  */
 
 import { constantTimeEqual } from "./auth";
+import { DomSnapshotSchema, type DomSnapshot } from "@/lib/fidelity/types";
 
 export interface CaptureAgentRegistration {
   url: string;
@@ -28,6 +29,8 @@ export interface CaptureRequest {
   height?: number;
   /** 拉伸到文档高度截整页，默认 true */
   fullPage?: boolean;
+  /** 同时返回 DOM/computed-style 快照，默认 false */
+  includeDom?: boolean;
   /** 加载完成后等待多久再截（字体 / 动画），默认 800ms */
   delayMs?: number;
   /** 整体超时，默认 25s */
@@ -42,6 +45,8 @@ export type CaptureResult =
       height: number;
       finalUrl?: string;
       title?: string;
+      dom?: DomSnapshot;
+      domError?: string;
       elapsedMs: number;
     }
   | { ok: false; error: string; code: "no_agent" | "agent_error" | "bad_response" | "timeout" };
@@ -143,6 +148,7 @@ export async function captureViaDesktop(request: CaptureRequest): Promise<Captur
         width: request.width ?? 1440,
         height: request.height ?? 900,
         fullPage: request.fullPage ?? true,
+        includeDom: request.includeDom ?? false,
         delayMs: request.delayMs ?? 800,
         timeoutMs,
       }),
@@ -157,6 +163,8 @@ export async function captureViaDesktop(request: CaptureRequest): Promise<Captur
       height?: number;
       finalUrl?: string;
       title?: string;
+      dom?: unknown;
+      domError?: string;
     };
     try {
       body = JSON.parse(text);
@@ -174,6 +182,7 @@ export async function captureViaDesktop(request: CaptureRequest): Promise<Captur
         error: body.error ?? `Desktop capture failed with HTTP ${res.status}.`,
       };
     }
+    const parsedDom = body.dom ? DomSnapshotSchema.safeParse(body.dom) : null;
     return {
       ok: true,
       dataUrl: `data:image/png;base64,${body.pngBase64}`,
@@ -181,6 +190,11 @@ export async function captureViaDesktop(request: CaptureRequest): Promise<Captur
       height: body.height ?? 0,
       finalUrl: body.finalUrl,
       title: body.title,
+      dom: parsedDom?.success ? parsedDom.data : undefined,
+      domError:
+        parsedDom && !parsedDom.success
+          ? "Desktop returned an invalid DOM snapshot."
+          : body.domError,
       elapsedMs: Date.now() - started,
     };
   } catch (err) {

@@ -48,7 +48,9 @@ export function createGeminiImageProvider(cfg: GeminiImageConfig): ImageProvider
       const url = `${joinURL(baseURL, `/v1beta/models/${cleanModel}:generateContent`)}?key=${cfg.apiKey}`;
 
       const aspectRatio =
-        cfg.aspectRatio ?? pickAspectRatio(input.width, input.height);
+        input.size === "auto"
+          ? undefined
+          : (cfg.aspectRatio ?? pickAspectRatio(input.width, input.height));
       // Gemini 无原生 negative_prompt，并入正文
       const promptText = input.negativePrompt
         ? `${input.prompt}\n\nDo not include: ${input.negativePrompt}`
@@ -63,9 +65,7 @@ export function createGeminiImageProvider(cfg: GeminiImageConfig): ImageProvider
         ],
         generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
-          imageConfig: {
-            aspectRatio,
-          },
+          ...(aspectRatio ? { imageConfig: { aspectRatio } } : {}),
         },
       };
 

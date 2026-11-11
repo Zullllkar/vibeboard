@@ -27,6 +27,7 @@ import { pickPrimaryMockup } from "@/lib/handoff/select-assets";
 import { buildSharedComponentIndex } from "@/lib/handoff/shared-components";
 import { isCodingHandoffPack, resolveHandoffPackKind } from "@/lib/handoff/pack-kind";
 import { compressImageDataUrlForVision } from "@/lib/handoff/vision-image";
+import type { DomSnapshot } from "@/lib/fidelity/types";
 import type { ProjectFile } from "@/lib/project/schema";
 import { resolveProviders } from "@/lib/providers/registry";
 import { listProjectsFromVad } from "@/lib/vad/storage";
@@ -1043,7 +1044,7 @@ function registerWriteBackTools(server: McpServer): void {
     {
       title: "Report an implemented screen for review",
       description:
-        "Report a screen you implemented so Vibeboard can compare it against the approved mockup and Layout IR. Returns a structured deviation list (slot, kind, expected, actual, fixHint) plus a 0-10 score. Fix the high-severity items and report again. This is the acceptance loop — call it after each screen. EASIEST: just pass `url` (your running dev server) — when the Vibeboard desktop app is open it takes the full-page screenshot itself. Otherwise pass screenshotBase64 or screenshotPath.",
+        "Report a screen you implemented so Vibeboard can compare it against the approved mockup and Layout IR. Returns a structured deviation list (slot, kind, expected, actual, fixHint) plus a 0-10 score. When the desktop app captures the page, it also returns `fidelity`: a deterministic DOM/computed-style comparison (geometry, color, content) that is more precise than the VLM. Fix the high-severity items and report again. This is the acceptance loop — call it after each screen. EASIEST: just pass `url` (your running dev server) — when the Vibeboard desktop app is open it takes the full-page screenshot and DOM snapshot itself. Otherwise pass screenshotBase64 or screenshotPath.",
       inputSchema: {
         project: PROJECT_ARG,
         assetId: z
@@ -1083,7 +1084,10 @@ function registerWriteBackTools(server: McpServer): void {
       if (blocked) return blocked;
 
       let shot = await readScreenshotInput(p, { screenshotBase64, screenshotPath });
-      let captured: { width: number; height: number; finalUrl?: string; elapsedMs: number } | undefined;
+      let capturedDom: DomSnapshot | undefined;
+      let captured:
+        | { width: number; height: number; finalUrl?: string; elapsedMs: number; domCaptured: boolean }
+        | undefined;
       const wantsAutoCapture = !screenshotBase64?.trim() && !screenshotPath?.trim() && Boolean(url?.trim());
       if (wantsAutoCapture) {
         const target = url!.trim();
@@ -1094,7 +1098,12 @@ function registerWriteBackTools(server: McpServer): void {
           ? (p.assets ?? []).find((a) => a.id === assetId)
           : pickPrimaryMockup(p);
         const width = viewportWidth ?? Math.min(1920, Math.max(320, Math.round(mockup?.width ?? 1440)));
-        const cap = await captureViaDesktop({ url: target, width, fullPage: true });
+        const cap = await captureViaDesktop({
+          url: target,
+          width,
+          fullPage: true,
+          includeDom: true,
+        });
         if (!cap.ok) {
           return fail(cap.error, undefined, {
             code: cap.code,
@@ -1105,8 +1114,15 @@ function registerWriteBackTools(server: McpServer): void {
                 : "Check that the dev server is running and the URL renders, then retry. You can also pass screenshotBase64 directly.",
           });
         }
+        capturedDom = cap.dom;
         shot = { ok: true, dataUrl: cap.dataUrl, from: "base64", bytes: Math.floor((cap.dataUrl.length * 3) / 4) };
-        captured = { width: cap.width, height: cap.height, finalUrl: cap.finalUrl, elapsedMs: cap.elapsedMs };
+        captured = {
+          width: cap.width,
+          height: cap.height,
+          finalUrl: cap.finalUrl,
+          elapsedMs: cap.elapsedMs,
+          domCaptured: Boolean(cap.dom),
+        };
       }
       if (!shot.ok) return fail(shot.error);
 
@@ -1121,6 +1137,7 @@ function registerWriteBackTools(server: McpServer): void {
         screenshotDataUrl: shot.dataUrl,
         url,
         llm,
+        dom: capturedDom,
       });
 
       return json({
@@ -1129,11 +1146,13 @@ function registerWriteBackTools(server: McpServer): void {
         source: report.source,
         capturedBy: captured ? "vibeboard-desktop" : shot.from,
         capture: captured,
+        domCaptured: Boolean(capturedDom),
         score: report.score,
         verdict: report.verdict,
         summary: report.summary,
         matched: report.matched,
         deviations: report.deviations,
+        fidelity: report.fidelity,
         warnings: report.warnings,
         hint:
           report.verdict === "unreviewed"

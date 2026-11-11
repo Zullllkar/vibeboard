@@ -54,6 +54,7 @@ interface CanvasUiState {
   clearComposerDraftOffer: () => void;
   citeMenu: CiteMenuState | null;
   openCiteMenu: (menu: CiteMenuState) => void;
+  moveCiteMenu: (patch: Partial<CiteMenuState>) => void;
   closeCiteMenu: () => void;
   spawnPoint: { x: number; y: number } | null;
   offerSpawnPoint: (point: { x: number; y: number }) => void;
@@ -115,6 +116,10 @@ export const useCanvasUiStore = create<CanvasUiState>((set, get) => ({
   clearComposerDraftOffer: () => set({ composerDraftOffer: null }),
   citeMenu: null,
   openCiteMenu: (menu) => set({ citeMenu: menu }),
+  moveCiteMenu: (patch) =>
+    set((state) =>
+      state.citeMenu ? { citeMenu: { ...state.citeMenu, ...patch } } : {}
+    ),
   closeCiteMenu: () => set({ citeMenu: null }),
   spawnPoint: null,
   offerSpawnPoint: (point) => set({ spawnPoint: point }),

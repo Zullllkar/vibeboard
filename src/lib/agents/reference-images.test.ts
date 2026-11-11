@@ -4,6 +4,7 @@ import {
   collectProjectReferenceImages,
   groundPromptToCitedReferences,
   resolveCitedVisualAsset,
+  withAdoptedStyleReference,
 } from "./reference-images";
 import type { ProjectFile } from "@/lib/project/schema";
 import { parsePageReference } from "./orchestrator-planner";
@@ -103,6 +104,39 @@ describe("collectProjectReferenceImages", () => {
     ]);
     const collected = collectProjectReferenceImages(project);
     expect(collected.ids).toEqual(["png"]);
+  });
+
+  it("does not use an uploaded canvas image when nothing was cited", () => {
+    const project = {
+      ...projectWithRefs([]),
+      assets: [
+        {
+          id: "gen",
+          prompt: "generated",
+          src: "/api/assets/p1/assets/gen.png",
+          width: 1024,
+          height: 1024,
+          model: "tt-image-2.5",
+          createdAt: "2026-01-03T00:00:00.000Z",
+          status: "candidate" as const,
+          source: "generated" as const,
+        },
+        {
+          id: "upload",
+          prompt: "用户上传",
+          src: "/api/assets/p1/assets/upload.png",
+          width: 3840,
+          height: 2160,
+          model: "upload",
+          createdAt: "2026-01-02T00:00:00.000Z",
+          status: "candidate" as const,
+          source: "uploaded" as const,
+        },
+      ],
+    } as ProjectFile;
+    const collected = collectProjectReferenceImages(project);
+    expect(collected.srcs).toEqual([]);
+    expect(collected.ids).toEqual([]);
   });
 
   it("resolves cited canvas assets and from-asset ids", () => {
@@ -345,5 +379,13 @@ describe("parsePageReference reference prefixes", () => {
     expect(parsed.assetId).toBe("asset9");
     expect(parsed.referenceIds).toEqual(["ref3"]);
     expect(parsed.cleanText).toBe("换配色");
+  });
+});
+
+describe("withAdoptedStyleReference", () => {
+  it("uses the adopted picture when the user did not name another reference", () => {
+    expect(withAdoptedStyleReference([], "img-a")).toEqual(["img-a"]);
+    expect(withAdoptedStyleReference(["cited"], "img-a")).toEqual(["cited"]);
+    expect(withAdoptedStyleReference([], undefined)).toEqual([]);
   });
 });

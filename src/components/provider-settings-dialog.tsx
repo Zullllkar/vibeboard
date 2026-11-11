@@ -90,6 +90,16 @@ export function ProviderSettingsDialog({
     (config.sliders?.contentLocale as ContentLocale) ?? "zh-CN",
   );
 
+  const IMAGE_SIZE_OPTIONS = [
+    { id: "1024x1024", label: "方形 1024", width: 1024, height: 1024 },
+    { id: "1536x1024", label: "横版 3:2", width: 1536, height: 1024 },
+    { id: "1024x1536", label: "竖版 2:3", width: 1024, height: 1536 },
+  ] as const;
+  const initialSize = config.generationPrefs?.defaultImageSize;
+  const [imageSizeId, setImageSizeId] = useState<string>(
+    IMAGE_SIZE_OPTIONS.find((o) => o.width === initialSize?.width && o.height === initialSize?.height)?.id ?? "1024x1024",
+  );
+
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<
     { ok: true; sample: string } | { ok: false; message: string } | null
@@ -182,11 +192,20 @@ export function ProviderSettingsDialog({
       contentLocale,
     };
 
+    const pickedSize = IMAGE_SIZE_OPTIONS.find((o) => o.id === imageSizeId);
     const next: ProviderConfig = {
       llm: { kind, baseURL, apiKey, model } as ProviderConfig["llm"],
       image: imageCfg,
       visionCritic,
       sliders,
+      ...(pickedSize
+        ? {
+            generationPrefs: {
+              ...config.generationPrefs,
+              defaultImageSize: { width: pickedSize.width, height: pickedSize.height },
+            },
+          }
+        : {}),
     };
 
     setConfig(next);
@@ -705,6 +724,24 @@ export function ProviderSettingsDialog({
                 ))}
               </select>
             </div>
+            <div className="vad-settings-row">
+              <div className="vad-settings-copy">
+                <strong>默认生图尺寸</strong>
+                <p>未指定尺寸时生图使用的宽高。</p>
+              </div>
+              <select
+                value={imageSizeId}
+                onChange={(e) => setImageSizeId(e.target.value)}
+                className="vad-settings-select"
+                aria-label="默认生图尺寸"
+              >
+                {IMAGE_SIZE_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         ) : (
           <>
@@ -731,6 +768,21 @@ export function ProviderSettingsDialog({
                   className={selectClass}
                 >
                   {CONTENT_LOCALE_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <span className="text-xs font-bold app-subtle">默认生图尺寸</span>
+                <select
+                  value={imageSizeId}
+                  onChange={(e) => setImageSizeId(e.target.value)}
+                  className={selectClass}
+                  aria-label="默认生图尺寸"
+                >
+                  {IMAGE_SIZE_OPTIONS.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.label}
                     </option>
