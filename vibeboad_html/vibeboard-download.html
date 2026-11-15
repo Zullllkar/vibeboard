@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>下载 — Vibeboard</title>
-<meta name="description" content="下载 Vibeboard 0.9.4 的 Windows 安装说明。适用于 Windows 10 64 位和 Windows 11。">
+<meta name="description" content="下载 Vibeboard 0.1.0 的 Windows 安装包。适用于 Windows 10 64 位和 Windows 11。">
 <link rel="stylesheet" href="assets/vibeboard-pages.css">
 <script>
 document.documentElement.classList.add("js");
@@ -44,13 +44,13 @@ document.documentElement.classList.add("js");
   <main>
     <article class="page">
       <header data-od-id="download-hero">
-        <p class="eyebrow">0.9.4 · 2026-10-09</p>
+        <p class="eyebrow">0.1.0 · 2026-11-15</p>
         <h1>下载 Vibeboard</h1>
         <p class="gray-line">装在 Windows 上</p>
-        <p class="lede">给独立开发者、一人全栈和周末项目的桌面画布。这一页先提供 0.9.4 的安装说明。签名安装包上线后，同一个按钮会换成 Vibeboard-Setup-0.9.4.exe。</p>
+        <p class="lede">给独立开发者、一人全栈和周末项目的桌面画布。安装包是 Vibeboard-Setup-0.1.0-x64.exe，适用于 Windows 10 64 位和 Windows 11。这一版未签名，SmartScreen 可能提示未知发布者，选择仍要运行。</p>
         <div class="actions">
-          <a class="btn" href="downloads/Vibeboard-0.9.4-windows.txt" download="Vibeboard-0.9.4-windows.txt" data-download data-od-id="download-cta">下载 0.9.4 安装说明</a>
-          <a class="link" href="vibeboard-changelog.html#v094">看这一版改了什么</a>
+          <a class="btn" href="https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-Setup-0.1.0-x64.exe" data-download data-od-id="download-cta">下载 Windows 安装包</a>
+          <a class="link" href="vibeboard-changelog.html#v010">看这一版改了什么</a>
         </div>
         <p class="status" id="download-status" aria-live="polite"></p>
       </header>
@@ -58,11 +58,11 @@ document.documentElement.classList.add("js");
       <section class="block" data-od-id="download-build">
         <h2>这一版</h2>
         <div class="sheet">
-          <div class="sheet-row"><span>版本</span><p>0.9.4</p></div>
-          <div class="sheet-row"><span>日期</span><p>2026-10-09</p></div>
+          <div class="sheet-row"><span>版本</span><p>0.1.0</p></div>
+          <div class="sheet-row"><span>日期</span><p>2026-11-15</p></div>
           <div class="sheet-row"><span>系统</span><p>Windows 10 64 位，以及 Windows 11</p></div>
-          <div class="sheet-row"><span>安装包</span><p>Vibeboard-Setup-0.9.4.exe，签名文件还没挂上</p></div>
-          <div class="sheet-row"><span>现在拿到的</span><p>安装步骤、系统要求和交接方式，一份文本</p></div>
+          <div class="sheet-row"><span>安装包</span><p>Vibeboard-Setup-0.1.0-x64.exe</p></div>
+          <div class="sheet-row"><span>SHA256</span><p id="setup-sha256">BBE44B6370C0F3A16567871F109FEC9D4AA0CE6501C51FFC3BA5560563BC0363</p></div>
         </div>
       </section>
 
@@ -71,7 +71,7 @@ document.documentElement.classList.add("js");
         <ol class="steps">
           <li><b>01</b><p>确认系统是 Windows 10 64 位，或 Windows 11。</p></li>
           <li><b>02</b><p>留一个本地文件夹。画布和这句起点都写在这台电脑上。</p></li>
-          <li><b>03</b><p>安装包上线后运行安装程序，打开窗口，写一句它应该长什么样。</p></li>
+          <li><b>03</b><p>运行安装程序。若 Windows 提示未知发布者，选择仍要运行。打开窗口后写一句它应该长什么样。</p></li>
         </ol>
       </section>
 
@@ -87,12 +87,12 @@ document.documentElement.classList.add("js");
       </section>
 
       <section class="block" data-od-id="download-note">
-        <h2>这份说明里有什么</h2>
+        <h2>安装时会看到</h2>
         <div class="props">
-          <div class="prop"><span>准备</span><p>系统、本地文件夹，以及不需要账号。</p></div>
-          <div class="prop"><span>打开</span><p>安装包上线后的三步：运行安装程序，看到三栏，写下起点。</p></div>
-          <div class="prop"><span>交接</span><p>个人版在窗口里读约束。买断后可导出成一份本地文件。</p></div>
-          <div class="prop"><span>还没有</span><p>签名安装包和付款页都还没挂上。文件名仍是 Vibeboard-Setup-0.9.4.exe。</p></div>
+          <div class="prop"><span>安装包</span><p>未签名的 NSIS 安装程序，文件名 Vibeboard-Setup-0.1.0-x64.exe。</p></div>
+          <div class="prop"><span>SmartScreen</span><p>可能提示未知发布者。这是未签名安装包的提示，选择仍要运行。</p></div>
+          <div class="prop"><span>打开</span><p>装完后打开窗口，写下起点。画布留在这台电脑上。</p></div>
+          <div class="prop"><span>还没有</span><p>代码签名、自动更新、macOS、Linux，以及付款页。</p></div>
         </div>
       </section>
 

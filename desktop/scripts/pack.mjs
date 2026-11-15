@@ -32,7 +32,7 @@ function run(command, args) {
 function copyIfExists(from, to) {
   if (!existsSync(from)) return;
   mkdirSync(path.dirname(to), { recursive: true });
-  cpSync(from, to, { recursive: true });
+  cpSync(from, to, { recursive: true, dereference: true });
 }
 
 rmSync(sidecar, { recursive: true, force: true });
@@ -51,7 +51,7 @@ if (!existsSync(standalone)) {
 }
 
 const appDir = path.join(sidecar, "app");
-cpSync(standalone, appDir, { recursive: true });
+cpSync(standalone, appDir, { recursive: true, dereference: true });
 copyIfExists(
   path.join(root, ".next", "static"),
   path.join(appDir, ".next", "static")

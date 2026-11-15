@@ -92,6 +92,7 @@
     "vitest": "^4.1.10"
   },
   "build": {
+    "npmRebuild": false,
     "appId": "com.vibeboard.desktop",
     "productName": "Vibeboard",
     "copyright": "Copyright © 2026 Vibeboard",
