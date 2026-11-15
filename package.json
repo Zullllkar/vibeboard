@@ -2,6 +2,9 @@
   "name": "vibeboard",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
   "author": "Vibeboard",
   "main": "desktop/main.cjs",
   "productName": "Vibeboard",
@@ -32,7 +35,13 @@
     "lint": "biome check .",
     "format": "biome format --write",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "readme:auto": "node scripts/switch-readme.mjs --auto",
+    "readme:zh": "node scripts/switch-readme.mjs --lang zh",
+    "readme:en": "node scripts/switch-readme.mjs --lang en",
+    "readme:sync": "node scripts/switch-readme.mjs --lang en",
+    "readme:status": "node scripts/switch-readme.mjs --status",
+    "readme:assets": "python scripts/build-readme-assets.py"
   },
   "dependencies": {
     "@fastify/websocket": "^11.0.2",

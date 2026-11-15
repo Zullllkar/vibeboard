@@ -1,84 +1,73 @@
-<div align="center">
+<!-- README 中文源文件。修改本文件后运行 `pnpm readme:sync`。 -->
+<!-- 所有相对链接均以仓库根目录为基准。 -->
 
-# Vibeboard
+<p align="center">
+  <img src=".github/assets/banner-zh.png" width="720" alt="Vibeboard">
+</p>
 
-### 能跟你的 coding agent 对话的设计工作室。
+<h1 align="center">Vibeboard</h1>
 
-写一段 Brief。看七个 AI Agent 在无限画布上协作设计、迭代、产出像素级视觉素材。一键导出 Handoff 包——你的 Cursor / Claude Code / Codex 拿来就写代码。
+<p align="center">
+  写一段 Brief。七个 Agent 在无限画布上交出成品视觉，再打包给 Cursor、Claude Code 或 Codex。
+</p>
 
-**不用 Figma。不需要设计基础。API Key 不出本机。**
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="Apache 2.0"></a>
+  <a href="https://github.com/Zullllkar/vibeboard/stargazers"><img src="https://img.shields.io/github/stars/Zullllkar/vibeboard?style=flat-square&label=Stars&logo=github" alt="GitHub stars"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-18181C?style=flat-square" alt="v0.1.0"></a>
+</p>
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
-[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev)
-[![tldraw](https://img.shields.io/badge/tldraw-5-000000)](https://tldraw.dev)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+<p align="center">
+  <a href="README.en.md">English</a>
+  &nbsp;·&nbsp;
+  <a href="README.zh.md"><strong>简体中文</strong></a>
+</p>
 
-[English](README.md) · [中文](#这是什么) · [路线图](ROADMAP.md) · [贡献指南](CONTRIBUTING.md)
+<p align="center">
+  <img src=".github/assets/hero-light.png" width="860" alt="亮色工作台：Brief、素材与规格面板在同一张无限画布上">
+</p>
 
-</div>
+## 它做什么
 
----
+Vibeboard 给能说清产品、但需要先拿到成品视觉再让 coding agent 写界面的开发者。
 
-## 这是什么？
-
-你是个开发者。你有个产品想法。你大概知道它应该长什么样——但你不会设计，也不想为可能明天就变的东西花钱请设计师。
-
-**Vibeboard** 填的就是「我有个想法」和「Cursor 在写代码」之间的那个空。
-
-你写一段 Brief。七个 AI Agent——架构师、设计方向、布局工程师、文案、图片规划、图片执行、审查员——在无限画布上协作产出**成品视觉素材**，不是线框图，不是 HTML mock，不是还需要别人解读的「设计文件」。然后你点一个按钮，所有东西——PNG、prompts、设计 token、上下文——打包成一个文件夹，你的 coding agent 读了就能写代码。
-
-```
-你的想法 ──→ Brief ──→ 7 个 Agent 在画布上协作 ──→ Handoff 包 ──→ Cursor 写代码
-                              ↑
-                    你看着、迭代、精修
-```
-
-### 流水线
-
-```
-产品想法 → Brief → Architect → Design Direction → Layout → Content
-                                                    ↓
-                         Image Plan → Image Execute → Critic / Repair
-                                                    ↓
-                                    Handoff 包 (PNG + Prompts + Tokens)
-```
-
-## 为什么不一样
-
-- **产出的是图片，不是线框图** — 画布上每个素材都是成品级高保真视觉。不是灰盒子 mock，不是还需要人解读的「设计文件」，是今天就能放进 README 的东西。
-- **七个 Agent 流水线，不是聊天框** — 不是一个 AI 猜所有事，而是专门的 Agent 分别处理结构、视觉方向、排版、文案、图片规划、图片生成和质量审查——每个只做一件事，做到好。
-- **Handoff 包，不是截图** — 导出的不只是 PNG。是 PNG + prompts + 设计 token + 完整上下文，结构化组织，Cursor / Claude Code / Codex 读了就能写出匹配设计的代码。
-- **你的 API Key 不出本机** — LLM 和生图 Provider 在应用内配置，Key 留在你机器上，项目落盘本地文件系统。没有账号、没有遥测、没有上传。
-- **是 IDE，不是落地页** — 工作台像工具，不像营销网站。信息密度高、键盘友好、状态可见。你能看到每个 Agent 在做什么、什么时候做、为什么做。
+- 成品图直接落在画布上，可以拿去用。
+- 七个 Agent 各管一步：结构、方向、布局、文案、出图规划、出图、审查。
+- 一个交接文件夹——PNG、提示词、设计 token 和 Brief——交给 Cursor、Claude Code、Codex 去读。
 
 ## 快速开始
 
-### 前置要求
-
-- **Node.js** 18.18+（或 20+）
-- **pnpm** 8+（`npm i -g pnpm`）
-- 一个 LLM API Key（OpenAI、Anthropic 或任意 OpenAI 兼容 Provider）
-
-### 安装与运行
+需要 Node.js 20.19+、22.12+ 或 24，以及 pnpm 8+。启动后在应用里填写 LLM Key（OpenAI、Anthropic，或任意 OpenAI 兼容接口）。
 
 ```bash
 git clone https://github.com/Zullllkar/vibeboard.git
 cd vibeboard
 pnpm install
-cp .env.example .env.local   # 可选 — 也可在应用内配置 Provider
-pnpm dev
+pnpm dev            # 浏览器调试 http://localhost:3000
+pnpm dev:desktop    # 桌面窗口
 ```
 
-浏览器打开 [http://localhost:3000](http://localhost:3000)（调试用）。桌面窗：
+桌面安装包面向 Windows（`pnpm dist:desktop` 打出未签名的 NSIS）。`pnpm dev` 已经在跑时，`pnpm dev:desktop` 只再开一个窗口。
 
-```bash
-pnpm dev:desktop
-```
+<details>
+<summary><b>连接 Cursor / Claude Code / Codex</b></summary>
 
-若 `pnpm dev` 已在跑，这条命令只会再开一个窗口，不会占第二个端口。
+应用运行后打开 **设置 → 连接**：
 
-### 可选：启用 Daemon（推荐开发时使用）
+- **Cursor** — 用 deeplink 安装，或写入配置。
+- **Claude Code** — `claude mcp add --transport http`。
+- **Codex** — `codex mcp add --url`，并在 `~/.codex/config.toml` 写入 headers。
+
+coding agent 通过 `http://127.0.0.1:<port>/mcp` 调用 `get_handoff` / `get_asset_image`（Bearer token，仅本机回环）。交接弹窗也可以关联代码仓库，把包写到 `design/vibeboard/`，并附上 `AGENTS.md` / `CLAUDE.md` 片段。
+
+页面实现后，agent 用 `report_implementation` 回传截图。缺图用 `request_asset`。设计问题用 `ask_designer`。
+
+只支持 stdio 的宿主可以改用 `node cli.js mcp`。
+
+</details>
+
+<details>
+<summary><b>可选：Daemon</b></summary>
 
 ```bash
 # 终端 1
@@ -88,72 +77,135 @@ pnpm daemon
 pnpm dev
 ```
 
-### 常用命令
+想用 `.env.local` 而不是应用内配置时，看 [环境变量](docs/ENVIRONMENT_VARIABLES.md)。
 
-| 命令 | 说明 |
-|------|------|
-| `pnpm dev` | 启动 Next.js 开发服务器（浏览器调试） |
-| `pnpm dev:desktop` | 打开桌面应用（数据在用户目录，默认端口 18765） |
-| `pnpm dist:desktop` | 打 Windows NSIS / macOS DMG（未签名） |
-| `pnpm dist:desktop:dir` | 只出未打包目录，供冒烟 |
-| `pnpm daemon` | 启动 Vibeboard 落盘 Daemon（默认 `127.0.0.1:3921`） |
-| `pnpm build` | 生产构建 |
-| `pnpm start` | 启动生产服务器 |
-| `pnpm lint` | ESLint 检查 |
+</details>
 
-## 技术栈
+## 功能
 
-| 层级 | 技术 |
-|------|------|
-| 框架 | Next.js 16 (App Router) |
-| UI | React 19 · Tailwind CSS 4 |
-| 画布 | tldraw 5 |
-| 状态 | Zustand |
-| 语言 | TypeScript 5 |
-| 持久化 | 你的文件系统 — `.vad/projects/` |
+<table>
+  <tr>
+    <td width="33%" valign="top"><b>无限画布</b><br>Brief、素材、规格和 Agent 状态在同一块板上。</td>
+    <td width="33%" valign="top"><b>七个角色</b><br>架构、设计方向、布局、文案、出图规划、出图、审查。</td>
+    <td width="33%" valign="top"><b>交接包</b><br>PNG、提示词、token 和 Brief 放在一个文件夹里。</td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><b>Key 留在本机</b><br>供应商在你的机器上配置。项目写在本地磁盘。</td>
+    <td width="33%" valign="top"><b>桌面应用</b><br>日常用 Electron 窗口。浏览器服务用来调试。</td>
+    <td width="33%" valign="top"><b>开源</b><br>Apache 2.0。流水线可读，模型可换，也可以 fork。</td>
+  </tr>
+</table>
 
-## 工作流程
+## 看它工作
 
-```
-1. 写一段 Brief        →  名称、定位、目标用户、平台、视觉风格、核心功能
-2. Agent 开始干活       →  Architect → Design Direction → Layout → Content → Image Plan → Execute → Critic
-3. 在画布上看           →  所有素材出现在 tldraw 无限画布上。迭代、重排、精修。
-4. 点导出 Handoff      →  PNG + prompts + 设计 token + Brief 上下文 → 一个文件夹 → 喂给你的 coding agent
-```
+<p align="center">
+  <img src=".github/assets/demo.gif" width="860" alt="Vibeboard 工作台巡览">
+</p>
 
-## 横向对比
+<details>
+<summary>更多画面</summary>
+
+<p align="center">
+  <img src=".github/assets/pipeline.gif" width="860" alt="Vibeboard 七个 Agent 的流水线">
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src=".github/assets/canvas-dark.png" alt="同一项目的深色工作台"></td>
+    <td width="50%"><img src=".github/assets/wireframe-vs-final.png" alt="左侧线框，右侧成品"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>深色工作台</b> — 同一个项目，Agent 状态仍然可见。</sub></td>
+    <td align="center"><sub><b>线框到成品</b> — 结构是过程，交付的是图。</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/agent-team.png" alt="七个 Agent 角色"></td>
+    <td><img src=".github/assets/handoff-package.png" alt="交接包内容"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>七个角色</b> — 每个 Agent 有明确的输入和输出。</sub></td>
+    <td align="center"><sub><b>交接包</b> — README、spec、tokens.json 和 assets/final/。</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/canvas-surfaces.png" alt="一块画布的四个表面"></td>
+    <td><img src=".github/assets/banner-blueprint.png" alt="蓝图风格的产品画面"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>一块画布，四个表面</b> — 画板、素材、规格、交接。</sub></td>
+    <td align="center"><sub><b>同一条流水线</b> — 实时画布上的另一种视觉方向。</sub></td>
+  </tr>
+</table>
+
+</details>
+
+## 和别的工具差在哪
 
 | | Vibeboard | v0 | Figma AI | Lovart |
 |---|---|---|---|---|
-| 产出物 | 成品图片 | 代码 | 设计文件 | 对话 + 图片 |
+| 产出 | 成品图 | 代码 | 设计文件 | 对话 + 图片 |
 | 无限画布 | ✅ tldraw | ❌ | ❌ | ✅ |
-| 多 Agent 流水线 | ✅ 7 个专门 Agent | ❌ 单次生成 | ❌ | ~ 部分 |
-| Coding Agent 交付 | ✅ PNG + prompts + tokens + 上下文 | 仅代码 | 设计文件 | 对话记录 |
-| API Key 本地保存 | ✅ | N/A | ❌ | ❌ |
+| 多 Agent 流水线 | ✅ 7 个专职 Agent | ❌ 单次生成 | ❌ | ~ 部分 |
+| 给 coding agent 的交接 | ✅ PNG + 提示词 + token + 上下文 | 只有代码 | 设计文件 | 聊天记录 |
+| API Key 留在本地 | ✅ | 不适用 | ❌ | ❌ |
 | 开源 | ✅ Apache 2.0 | ❌ | ❌ | ❌ |
 | 需要设计基础 | ❌ | ❌ | ✅ | ❌ |
 
+## 怎么跑通
+
+1. **写 Brief** — 名称、定位、用户、平台、视觉风格、核心功能。
+2. **Agent 按步骤做** — 架构、设计方向、布局、文案、出图规划、出图、审查。
+3. **在画布上看** — 素材落在无限 tldraw 画板上，就地调整。
+4. **导出交接包** — 一个文件夹交给 coding agent。
+
+```mermaid
+flowchart LR
+  A[你的想法] --> B[Brief] --> C[7 个 Agent · 无限画布] --> D[成品素材] --> E[交接包] --> F[Cursor / Claude Code / Codex]
+  F -. "report_implementation + 截图" .-> C
+```
+
 ## 文档
 
-- [架构概览](docs/ARCHITECTURE.md)
-- [Daemon 说明](docs/DAEMON.md)
-- [产品设计](PRODUCT.md)
-- [设计系统](DESIGN.md)
-- [路线图](ROADMAP.md)
-- [更新日志](CHANGELOG.md)
+| | |
+|:---|:---|
+| [架构](docs/ARCHITECTURE.md) | [Daemon](docs/DAEMON.md) |
+| [产品](PRODUCT.md) | [设计系统](DESIGN.md) |
+| [环境变量](docs/ENVIRONMENT_VARIABLES.md) | [路线图](ROADMAP.md) |
+| [贡献](CONTRIBUTING.md) | [更新日志](CHANGELOG.md) |
 
-## 适用人群
-
-你写代码。你有想法。你没有设计师——或者你有，但你需要比设计评审周期更快地推进。Vibeboard 为**独立开发者、一人全栈团队、周末项目建造者**而生：从「我觉得它应该长这样……」到「Cursor，这是设计，开始写」一个 session 搞定。
+Next.js 16 · React 19 · Tailwind CSS 4 · tldraw 5 · LangGraph · MCP · Zustand · TypeScript 5 · Electron 37。项目落在 `.vad/projects/`。
 
 ## 贡献
 
-欢迎贡献！请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解如何提交 bug 报告、功能请求和 Pull Request。
+欢迎提 bug、功能请求和 pull request。先看 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [路线图](ROADMAP.md)。
 
-## 路线图
+## 许可证
 
-请查看 [ROADMAP.md](ROADMAP.md) 了解计划中的功能和里程碑。
+[Apache License 2.0](LICENSE) © 2026 Vibeboard。
 
-## 开源协议
+<details>
+<summary>维护这份 README</summary>
 
-[Apache License 2.0](LICENSE)
+`README.md` 由 [`scripts/switch-readme.mjs`](scripts/switch-readme.mjs) 从 [`README.en.md`](README.en.md) 和 [`README.zh.md`](README.zh.md) 生成。改源文件后再同步：
+
+```bash
+pnpm readme:zh     # README.md → 简体中文
+pnpm readme:en     # README.md → English
+pnpm readme:auto   # 按系统语言选择
+pnpm readme:sync   # 恢复英文默认
+```
+
+[docs/index.html](docs/index.html) 会按 `navigator.language` 跳转，供 GitHub Pages 或本地打开使用。GitHub 仓库页本身只认顶部的语言链接。
+
+`demo.gif` 由工作台截图合成。`pipeline.gif` 演示 Agent 流水线。换过素材图后运行 `python scripts/build-readme-assets.py` 重新生成。
+
+| 命令 | 作用 |
+|---------|-------------|
+| `pnpm dev` | Next.js 开发服务器 |
+| `pnpm dev:desktop` | 桌面窗口（端口 18765，数据在 userData） |
+| `pnpm dist:desktop` | 未签名的 Windows NSIS 安装包 |
+| `pnpm dist:desktop:dir` | 未打包目录，用来冒烟 |
+| `pnpm daemon` | 持久化守护进程（`127.0.0.1:3921`） |
+| `pnpm build` / `pnpm start` | 生产构建与启动 |
+| `pnpm lint` / `pnpm test` | Biome 检查和测试 |
+
+</details>

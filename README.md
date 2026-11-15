@@ -1,102 +1,73 @@
-<div align="center">
+<!-- README-LANG: en -->
+<!-- Generated from README.en.md by scripts/switch-readme.mjs. Edit the source, then run `pnpm readme:sync`. -->
 
-# Vibeboard
+<p align="center">
+  <img src=".github/assets/banner-en.png" width="720" alt="Vibeboard">
+</p>
 
-### The design studio that talks to your coding agent.
+<h1 align="center">Vibeboard</h1>
 
-Write a brief. Watch a team of AI agents design, iterate, and produce pixel-perfect visual assets on an infinite canvas. Export a handoff package — and your Cursor / Claude Code / Codex turns it into shipped code.
+<p align="center">
+  Write a brief. Seven agents deliver finished visuals on an infinite canvas, then pack them for Cursor, Claude Code, or Codex.
+</p>
 
-**No Figma. No design background. No API keys leaving your machine.**
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square" alt="Apache 2.0"></a>
+  <a href="https://github.com/Zullllkar/vibeboard/stargazers"><img src="https://img.shields.io/github/stars/Zullllkar/vibeboard?style=flat-square&label=Stars&logo=github" alt="GitHub stars"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-18181C?style=flat-square" alt="v0.1.0"></a>
+</p>
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
-[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev)
-[![tldraw](https://img.shields.io/badge/tldraw-5-000000)](https://tldraw.dev)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+<p align="center">
+  <a href="README.en.md"><strong>English</strong></a>
+  &nbsp;·&nbsp;
+  <a href="README.zh.md">简体中文</a>
+</p>
 
-[English](#what-is-this) · [中文](README.zh.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+<p align="center">
+  <img src=".github/assets/hero-light.png" width="860" alt="Light workspace: brief, assets and spec panel on an infinite canvas">
+</p>
 
-</div>
+## What it does
 
----
+Vibeboard is for developers who can describe a product and need finished visuals before a coding agent writes the UI.
 
-## What is this?
+- Finished images land on the canvas, ready to ship.
+- Seven agents each own one step: structure, direction, layout, copy, image planning, image generation, and review.
+- One handoff folder — PNGs, prompts, design tokens, and the brief — is what Cursor, Claude Code, and Codex read.
 
-You're a developer. You have a product idea. You know what it should look like — roughly — but you can't design it, and you don't want to pay a designer for something that might change tomorrow.
+## Quick start
 
-**Vibeboard** sits in the gap between "I have an idea" and "Cursor is writing the code."
-
-You write a brief. A team of AI agents — Architect, Design Director, Layout Engineer, Content Writer, Image Planner, Image Executor, and a Critic — collaborate on an infinite canvas to produce **finished visual assets**, not wireframes, not HTML mockups, not "design files" that someone still has to interpret. Then you click one button and everything — PNGs, prompts, design tokens, context — gets bundled into a folder your coding agent reads and understands.
-
-```
-Your idea ──→ Brief ──→ 7 agents collaborate on canvas ──→ Handoff package ──→ Cursor ships code
-                                    ↑
-                          you watch, iterate, refine
-```
-
-### Pipeline
-
-```
-Product Idea → Brief → Architect → Design Direction → Layout → Content
-                                                         ↓
-                              Image Plan → Image Execute → Critic / Repair
-                                                         ↓
-                                         Handoff Package (PNG + Prompts + Tokens)
-```
-
-## Why it's different
-
-- **Outputs images, not wireframes** — Every asset on the canvas is a finished, high-fidelity visual. Not a boxy gray mockup. Not a "design file" someone has to interpret. Something you can put in a README today.
-- **7-agent pipeline, not a chat box** — Instead of one AI guessing everything, specialized agents handle structure, visual direction, layout, copy, image planning, image generation, and quality review — each doing one thing well.
-- **Handoff package, not a screenshot** — Export isn't just PNGs. It's PNGs + prompts + design tokens + full context, structured so Cursor / Claude Code / Codex can read it and write code that matches the design.
-- **Your API keys never touch the cloud** — LLM and image providers are configured in-app. Keys stay on your machine. Projects persist to local filesystem. No account, no telemetry, no upload.
-- **It's an IDE, not a landing page** — The workspace feels like a tool, not a marketing site. Dense, keyboard-friendly, status-visible. You see what each agent is doing, when, and why.
-
-## Quick Start
-
-### Prerequisites
-
-- **Node.js** 18.18+ (or 20+)
-- **pnpm** 8+ (`npm i -g pnpm`)
-- An LLM API key (OpenAI, Anthropic, or any OpenAI-compatible provider)
-
-### Install & Run
+Node.js 20.19+, 22.12+, or 24, plus pnpm 8+. Add an LLM key in the app after it starts (OpenAI, Anthropic, or any OpenAI-compatible provider).
 
 ```bash
 git clone https://github.com/Zullllkar/vibeboard.git
 cd vibeboard
 pnpm install
-cp .env.example .env.local   # optional — configure providers in-app instead
-pnpm dev
+pnpm dev            # browser debug at http://localhost:3000
+pnpm dev:desktop    # desktop window
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser (debug). Desktop window:
+The desktop installer target is Windows (`pnpm dist:desktop` builds an unsigned NSIS package). If `pnpm dev` is already running, `pnpm dev:desktop` only opens a window.
 
-```bash
-pnpm dev:desktop
-```
+<details>
+<summary><b>Connect Cursor / Claude Code / Codex</b></summary>
 
-If `pnpm dev` is already running, this only opens a window and will not spawn a second server.
+With the app running, open **Settings → Connections**:
 
-### Connect Cursor / Claude Code / Codex (no zip)
+- **Cursor** — install via deeplink or write the config.
+- **Claude Code** — `claude mcp add --transport http`.
+- **Codex** — `codex mcp add --url`, plus headers in `~/.codex/config.toml`.
 
-With the app running, open **Settings → 连接**.
+The coding agent calls `get_handoff` / `get_asset_image` on `http://127.0.0.1:<port>/mcp` (Bearer token, loopback only). The Handoff dialog can also link a code repo and write the package to `design/vibeboard/` with `AGENTS.md` / `CLAUDE.md` snippets.
 
-- **Cursor**: click “在 Cursor 中安装” (deeplink) or “写入配置”.
-- **Claude Code**: one-click `claude mcp add --transport http`.
-- **Codex**: one-click `codex mcp add --url` plus `~/.codex/config.toml` headers.
+After a screen is implemented, the agent calls `report_implementation` with a screenshot. A missing image uses `request_asset`. A design question uses `ask_designer`.
 
-Coding agents then call `get_handoff` / `get_asset_image` against `http://127.0.0.1:<port>/mcp` (Bearer token, loopback only). From a Handoff dialog you can also **link a code repo** so the package is written to `design/vibeboard/` with `AGENTS.md` / `CLAUDE.md` snippets — no download/unzip.
+Stdio-only hosts can fall back to `node cli.js mcp`.
 
-After implementing a screen, the coding agent should call `report_implementation` with a screenshot. Missing images: `request_asset` (shows an approval card in the canvas). Design questions: `ask_designer`.
+</details>
 
-Fallback for stdio-only hosts:
-
-```bash
-node cli.js mcp
-```
-
-### Optional: Enable the Daemon (recommended for development)
+<details>
+<summary><b>Optional daemon</b></summary>
 
 ```bash
 # Terminal 1
@@ -106,38 +77,66 @@ pnpm daemon
 pnpm dev
 ```
 
-### Scripts
+See [Environment Variables](docs/ENVIRONMENT_VARIABLES.md) if you prefer a `.env.local` file over in-app provider settings.
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start Next.js dev server (browser debug) |
-| `pnpm dev:desktop` | Open the desktop app (userData, port 18765) |
-| `pnpm dist:desktop` | Build unsigned NSIS / DMG |
-| `pnpm dist:desktop:dir` | Unpacked app folder for smoke tests |
-| `pnpm daemon` | Start Vibeboard persistence daemon (default `127.0.0.1:3921`) |
-| `pnpm build` | Production build |
-| `pnpm start` | Start production server |
-| `pnpm lint` | Run ESLint |
+</details>
 
-## Built with
+## Features
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| UI | React 19 · Tailwind CSS 4 |
-| Canvas | tldraw 5 |
-| State | Zustand |
-| Language | TypeScript 5 |
-| Persistence | Your filesystem — `.vad/projects/` |
+<table>
+  <tr>
+    <td width="33%" valign="top"><b>Infinite canvas</b><br>Brief, assets, spec, and agent status live on one board.</td>
+    <td width="33%" valign="top"><b>Seven roles</b><br>Architect, design direction, layout, copy, image plan, image execution, critic.</td>
+    <td width="33%" valign="top"><b>Handoff package</b><br>PNG, prompts, tokens, and the brief in one folder.</td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><b>Keys stay local</b><br>Providers are configured on your machine. Projects stay on disk.</td>
+    <td width="33%" valign="top"><b>Desktop app</b><br>Electron window for daily use. The browser server is there for debugging.</td>
+    <td width="33%" valign="top"><b>Open source</b><br>Apache 2.0. Read the pipeline, swap a model, or fork it.</td>
+  </tr>
+</table>
 
-## How it works
+## See it work
 
-```
-1. Write a brief          →  Name, positioning, target users, platform, visual style, core features
-2. Agents go to work      →  Architect → Design Direction → Layout → Content → Image Plan → Execute → Critic
-3. Watch on canvas        →  Everything lands on an infinite tldraw canvas. Iterate, rearrange, refine.
-4. Click Export Handoff   →  PNGs + prompts + design tokens + Brief context → one folder → feed to your coding agent
-```
+<p align="center">
+  <img src=".github/assets/demo.gif" width="860" alt="Vibeboard workspace tour">
+</p>
+
+<details>
+<summary>More of the product</summary>
+
+<p align="center">
+  <img src=".github/assets/pipeline.gif" width="860" alt="Vibeboard 7-agent pipeline">
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src=".github/assets/canvas-dark.png" alt="Dark workspace with the same project"></td>
+    <td width="50%"><img src=".github/assets/wireframe-vs-final.png" alt="Wireframe on the left, finished asset on the right"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Dark workspace</b> — the same project, agent status still visible.</sub></td>
+    <td align="center"><sub><b>Wireframe to finished asset</b> — structure is the process, the image is the deliverable.</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/agent-team.png" alt="Seven agent roles"></td>
+    <td><img src=".github/assets/handoff-package.png" alt="Handoff package contents"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Seven roles</b> — each agent has an explicit input and output.</sub></td>
+    <td align="center"><sub><b>Handoff package</b> — README, spec, tokens.json, and assets/final/.</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/canvas-surfaces.png" alt="Four surfaces of one canvas"></td>
+    <td><img src=".github/assets/banner-blueprint.png" alt="Blueprint themed product view"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>One canvas, four surfaces</b> — board, assets, specs, and handoff.</sub></td>
+    <td align="center"><sub><b>Same pipeline</b> — another visual direction on the live canvas.</sub></td>
+  </tr>
+</table>
+
+</details>
 
 ## How it compares
 
@@ -151,27 +150,62 @@ pnpm dev
 | Open source | ✅ Apache 2.0 | ❌ | ❌ | ❌ |
 | Requires design skills | ❌ | ❌ | ✅ | ❌ |
 
+## How a run works
+
+1. **Write a brief** — name, positioning, audience, platform, visual style, core features.
+2. **Agents take their steps** — Architect, design direction, layout, copy, image plan, execution, critic.
+3. **Watch the canvas** — assets land on an infinite tldraw board. Rearrange and refine them there.
+4. **Export the handoff** — one folder for your coding agent.
+
+```mermaid
+flowchart LR
+  A[Your idea] --> B[Brief] --> C[7 agents · infinite canvas] --> D[Finished assets] --> E[Handoff package] --> F[Cursor / Claude Code / Codex]
+  F -. "report_implementation + screenshot" .-> C
+```
+
 ## Documentation
 
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Daemon Guide](docs/DAEMON.md)
-- [Product Specification](PRODUCT.md)
-- [Design System](DESIGN.md)
-- [Roadmap](ROADMAP.md)
-- [Changelog](CHANGELOG.md)
+| | |
+|:---|:---|
+| [Architecture](docs/ARCHITECTURE.md) | [Daemon](docs/DAEMON.md) |
+| [Product](PRODUCT.md) | [Design system](DESIGN.md) |
+| [Environment variables](docs/ENVIRONMENT_VARIABLES.md) | [Roadmap](ROADMAP.md) |
+| [Contributing](CONTRIBUTING.md) | [Changelog](CHANGELOG.md) |
 
-## Who it's for
-
-You write code. You have ideas. You don't have a designer — or you do, but you need to move faster than the design review cycle allows. Vibeboard is built for the **indie hacker, the one-person full-stack team, the weekend project builder** who needs to go from "I think this should look like..." to "Cursor, here's the design, build it" in one session.
+Next.js 16 · React 19 · Tailwind CSS 4 · tldraw 5 · LangGraph · MCP · Zustand · TypeScript 5 · Electron 37. Projects persist under `.vad/projects/`.
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on bug reports, feature requests, and pull requests.
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned features and milestones.
+Bug reports, feature requests, and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Roadmap](ROADMAP.md) first.
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](LICENSE) © 2026 Vibeboard.
+
+<details>
+<summary>Maintaining this README</summary>
+
+`README.md` is generated from [`README.en.md`](README.en.md) and [`README.zh.md`](README.zh.md) by [`scripts/switch-readme.mjs`](scripts/switch-readme.mjs). Edit a source, then sync:
+
+```bash
+pnpm readme:zh     # README.md → 简体中文
+pnpm readme:en     # README.md → English
+pnpm readme:auto   # detect from the OS locale
+pnpm readme:sync   # restore the English default
+```
+
+A browser landing page at [docs/index.html](docs/index.html) redirects by `navigator.language` for GitHub Pages or a local open. GitHub itself only follows the language links at the top.
+
+`demo.gif` is composed from workspace screenshots. `pipeline.gif` animates the agent pipeline. Refresh both with `python scripts/build-readme-assets.py` after replacing the source shots.
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Next.js dev server |
+| `pnpm dev:desktop` | Desktop window (port 18765, data in userData) |
+| `pnpm dist:desktop` | Unsigned Windows NSIS installer |
+| `pnpm dist:desktop:dir` | Unpacked app folder for smoke tests |
+| `pnpm daemon` | Persistence daemon (`127.0.0.1:3921`) |
+| `pnpm build` / `pnpm start` | Production build and server |
+| `pnpm lint` / `pnpm test` | Biome checks and the test suite |
+
+</details>

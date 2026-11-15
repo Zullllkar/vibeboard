@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Vibeboard — open the README in your language.">
+  <title>Vibeboard · Choose your language / 选择语言</title>
+  <style>
+    :root {
+      --bg: #0E0F14;
+      --panel: #171923;
+      --border: #2A2D3A;
+      --indigo: #6366F1;
+      --indigo-strong: #4F52E0;
+      --text: #F5F6FA;
+      --muted: #9CA3AF;
+      --dim: #6B7180;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--text);
+      font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                   'PingFang SC', 'Microsoft YaHei', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+    }
+    .wrap { width: 100%; max-width: 720px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+    .mark {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--indigo);
+      display: grid; place-items: center;
+      box-shadow: 0 6px 20px rgba(99,102,241,.28);
+    }
+    .mark svg { width: 20px; height: 20px; }
+    .brand-name { font-size: 19px; font-weight: 650; letter-spacing: -.02em; }
+    .eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: .18em;
+      color: #A5B4FC; text-transform: uppercase; margin-bottom: 14px;
+    }
+    h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.2; letter-spacing: -.035em; margin: 0 0 12px; }
+    .lede { color: var(--muted); font-size: 15px; line-height: 1.7; margin: 0 0 32px; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .choice {
+      display: block; text-align: left; text-decoration: none; color: var(--text);
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      padding: 22px; transition: border-color .18s ease, transform .18s ease, background .18s ease;
+    }
+    .choice:hover, .choice:focus-visible {
+      border-color: var(--indigo); background: #1C1F31; transform: translateY(-2px); outline: none;
+    }
+    .choice .lang { font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
+    .choice .desc { display: block; margin-top: 7px; color: var(--dim); font-size: 13px; line-height: 1.6; }
+    .choice .arrow { float: right; color: #A5B4FC; font-size: 18px; }
+    .status {
+      margin-top: 26px; padding: 14px 18px; border: 1px solid var(--border);
+      border-radius: 10px; background: rgba(23,25,35,.72);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      font-size: 13px; color: var(--muted);
+    }
+    .status strong { color: var(--text); font-weight: 600; }
+    .status button {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 7px; padding: 6px 12px; cursor: pointer; font-size: 12px;
+      font-family: inherit; white-space: nowrap;
+    }
+    .status button:hover { border-color: var(--indigo); color: var(--text); }
+    .bar { height: 2px; margin-top: 14px; border-radius: 2px; background: #262935; overflow: hidden; }
+    .bar span { display: block; height: 100%; width: 100%; background: var(--indigo); transform-origin: left; }
+    .bar.running span { animation: drain 3s linear forwards; }
+    .bar.fast span { animation-duration: 1.2s; }
+    @keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    .note { margin-top: 34px; font-size: 12px; line-height: 1.8; color: var(--dim); }
+    .note a { color: #A5B4FC; text-decoration: none; }
+    .note a:hover { text-decoration: underline; }
+    code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 11px; color: #C7D2FE; }
+    @media (max-width: 560px) { .choices { grid-template-columns: 1fr; } .brand { margin-bottom: 28px; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 8l7 9 7-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="brand-name">Vibeboard</span>
+    </div>
+
+    <div class="eyebrow">README · Language</div>
+    <h1>Choose your language<br>选择语言</h1>
+    <p class="lede">
+      This page reads your browser language and opens the matching README.
+      GitHub strips JavaScript from README files, so this page acts as the auto-detect entry point.<br>
+      本页会读取浏览器语言并打开对应版本的 README；GitHub 会过滤 README 中的脚本，因此自动识别由此页完成。
+    </p>
+
+    <div class="choices">
+      <a class="choice" href="#" data-lang="en">
+        <span class="arrow" aria-hidden="true">↗</span>
+        <span class="lang">English</span>
+        <span class="desc">Read the full English README — setup, screenshots, pipeline and docs.</span>
+      </a>
+      <a class="choice" href="#" data-lang="zh">
+        <span class="arrow" aria-hidden="true">↗</span>
+        <span class="lang">简体中文</span>
+        <span class="desc">阅读中文 README —— 安装、界面截图、Agent 流水线与项目文档。</span>
+      </a>
+    </div>
+
+    <div class="status" id="status">
+      <span id="status-text">Detecting your language…</span>
+      <button type="button" id="cancel">Stay here</button>
+    </div>
+    <div class="bar" id="bar"><span></span></div>
+
+    <p class="note">
+      Force a language with <code>?lang=en</code> or <code>?lang=zh</code>. Your manual choice is remembered on this device.<br>
+      Prefer switching locally? Run <code>pnpm readme:auto</code> (or <code>readme:zh</code> / <code>readme:en</code>) to replace the root <code>README.md</code>.<br>
+      <a href="https://github.com/Zullllkar/vibeboard">Repository</a> ·
+      <a href="https://github.com/Zullllkar/vibeboard/blob/main/README.en.md">README (EN)</a> ·
+      <a href="https://github.com/Zullllkar/vibeboard/blob/main/README.zh.md">README (中文)</a>
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      var REPO = 'https://github.com/Zullllkar/vibeboard/blob/main/';
+      var URLS = { en: REPO + 'README.en.md', zh: REPO + 'README.zh.md' };
+      var LABEL = { en: 'English', zh: '简体中文' };
+      var KEY = 'vibeboard-readme-lang';
+
+      function normalize(value) {
+        if (!value) return null;
+        var v = String(value).toLowerCase();
+        if (v.indexOf('zh') === 0 || v === 'cn' || v === 'chinese') return 'zh';
+        if (v.indexOf('en') === 0) return 'en';
+        return null;
+      }
+
+      var params = new URLSearchParams(window.location.search);
+      var forced = normalize(params.get('lang'));
+      var stored = null;
+      try { stored = normalize(localStorage.getItem(KEY)); } catch (e) { /* storage disabled */ }
+      var browserLang = normalize(navigator.language || navigator.userLanguage) || 'en';
+      var lang = forced || stored || browserLang;
+
+      var statusText = document.getElementById('status-text');
+      var bar = document.getElementById('bar');
+      var cancel = document.getElementById('cancel');
+      var timer = null;
+
+      function go(target) {
+        try { localStorage.setItem(KEY, target); } catch (e) { /* storage disabled */ }
+        window.location.href = URLS[target];
+      }
+
+      // Explicit ?lang=... should redirect immediately.
+      if (forced) {
+        statusText.innerHTML = 'Opening <strong>' + LABEL[forced] + '</strong> …';
+        go(forced);
+        return;
+      }
+
+      var seconds = stored ? 1.2 : 3;
+      statusText.innerHTML = 'Opening <strong>' + LABEL[lang] + '</strong> in ' +
+        (stored ? 'a moment' : '3 seconds') + '…';
+      bar.classList.add('running');
+      if (stored) bar.classList.add('fast');
+      timer = window.setTimeout(function () { go(lang); }, stored ? 1200 : 3000);
+
+      cancel.addEventListener('click', function () {
+        window.clearTimeout(timer);
+        bar.classList.remove('running', 'fast');
+        statusText.innerHTML = 'Auto-redirect cancelled — pick a language above.';
+        cancel.style.display = 'none';
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('.choice'), function (link) {
+        link.href = URLS[link.getAttribute('data-lang')];
+        link.addEventListener('click', function (event) {
+          event.preventDefault();
+          window.clearTimeout(timer);
+          go(link.getAttribute('data-lang'));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
