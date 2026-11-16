@@ -24,6 +24,12 @@
 </p>
 
 <p align="center">
+  <a href="https://zullllkar.github.io/vibeboard/"><strong>Website</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://zullllkar.github.io/vibeboard/vibeboard-download.html"><strong>Download for Windows</strong></a>
+</p>
+
+<p align="center">
   <img src=".github/assets/hero-light.png" width="860" alt="Light workspace: brief, assets and spec panel on an infinite canvas">
 </p>
 
@@ -37,14 +43,14 @@ Vibeboard is for developers who can describe a product and need finished visuals
 
 ## Quick start
 
-Windows 10 64-bit or Windows 11. Download [Vibeboard-0.1.0-x64.zip](https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-0.1.0-x64.zip), unzip it, and run `Vibeboard.exe`. The build is unsigned, so SmartScreen may warn about an unknown publisher.
+Download the Windows app from the [website](https://zullllkar.github.io/vibeboard/vibeboard-download.html). The file is [Vibeboard-0.1.0-x64.zip](https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-0.1.0-x64.zip). Unzip it and run `Vibeboard.exe`. Windows 10 64-bit or Windows 11. The build is unsigned, so SmartScreen may warn about an unknown publisher.
 
 SHA256: `D65FC2AC60BDB2E6FD99D2691997F95A57AE5825E6DD0F42711D7BD309F2652B`
 
 After it opens, add an LLM key in the app (OpenAI, Anthropic, or any OpenAI-compatible provider).
 
 <details>
-<summary><b>Run from source</b></summary>
+<summary><b>Contributors: run from source</b></summary>
 
 Node.js 20.19+, 22.12+, or 24, plus pnpm 8+.
 
@@ -178,6 +184,7 @@ flowchart LR
 
 | | |
 |:---|:---|
+| [Website](https://zullllkar.github.io/vibeboard/) | [Download for Windows](https://zullllkar.github.io/vibeboard/vibeboard-download.html) |
 | [Architecture](docs/ARCHITECTURE.md) | [Daemon](docs/DAEMON.md) |
 | [Product](PRODUCT.md) | [Design system](DESIGN.md) |
 | [Environment variables](docs/ENVIRONMENT_VARIABLES.md) | [Roadmap](ROADMAP.md) |
@@ -205,7 +212,7 @@ pnpm readme:auto   # detect from the OS locale
 pnpm readme:sync   # restore the English default
 ```
 
-A browser landing page at [docs/index.html](docs/index.html) redirects by `navigator.language` for GitHub Pages or a local open. GitHub itself only follows the language links at the top.
+The product site is [zullllkar.github.io/vibeboard](https://zullllkar.github.io/vibeboard/). [docs/index.html](docs/index.html) only switches the README language. GitHub itself follows the language links at the top.
 
 `demo.gif` is composed from workspace screenshots. `pipeline.gif` animates the agent pipeline. Refresh both with `python scripts/build-readme-assets.py` after replacing the source shots.
 

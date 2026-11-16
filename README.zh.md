@@ -24,6 +24,12 @@
 </p>
 
 <p align="center">
+  <a href="https://zullllkar.github.io/vibeboard/"><strong>官网</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://zullllkar.github.io/vibeboard/vibeboard-download.html"><strong>下载 Windows 版</strong></a>
+</p>
+
+<p align="center">
   <img src=".github/assets/hero-light.png" width="860" alt="亮色工作台：Brief、素材与规格面板在同一张无限画布上">
 </p>
 
@@ -37,14 +43,14 @@ Vibeboard 给能说清产品、但需要先拿到成品视觉再让 coding agent
 
 ## 快速开始
 
-适用于 Windows 10 64 位或 Windows 11。下载 [Vibeboard-0.1.0-x64.zip](https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-0.1.0-x64.zip)，解压后运行 `Vibeboard.exe`。程序未签名，SmartScreen 可能提示未知发布者。
+从[官网下载页](https://zullllkar.github.io/vibeboard/vibeboard-download.html)下载 Windows 版。文件是 [Vibeboard-0.1.0-x64.zip](https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-0.1.0-x64.zip)，解压后运行 `Vibeboard.exe`。适用于 Windows 10 64 位或 Windows 11。程序未签名，SmartScreen 可能提示未知发布者。
 
 SHA256：`D65FC2AC60BDB2E6FD99D2691997F95A57AE5825E6DD0F42711D7BD309F2652B`
 
 打开后在应用里填写 LLM Key（OpenAI、Anthropic，或任意 OpenAI 兼容接口）。
 
 <details>
-<summary><b>从源码运行</b></summary>
+<summary><b>贡献者：从源码运行</b></summary>
 
 需要 Node.js 20.19+、22.12+ 或 24，以及 pnpm 8+。
 
@@ -178,6 +184,7 @@ flowchart LR
 
 | | |
 |:---|:---|
+| [官网](https://zullllkar.github.io/vibeboard/) | [下载 Windows 版](https://zullllkar.github.io/vibeboard/vibeboard-download.html) |
 | [架构](docs/ARCHITECTURE.md) | [Daemon](docs/DAEMON.md) |
 | [产品](PRODUCT.md) | [设计系统](DESIGN.md) |
 | [环境变量](docs/ENVIRONMENT_VARIABLES.md) | [路线图](ROADMAP.md) |
@@ -205,7 +212,7 @@ pnpm readme:auto   # 按系统语言选择
 pnpm readme:sync   # 恢复英文默认
 ```
 
-[docs/index.html](docs/index.html) 会按 `navigator.language` 跳转，供 GitHub Pages 或本地打开使用。GitHub 仓库页本身只认顶部的语言链接。
+产品官网是 [zullllkar.github.io/vibeboard](https://zullllkar.github.io/vibeboard/)。[docs/index.html](docs/index.html) 只负责切换 README 语言。GitHub 仓库页本身只认顶部的语言链接。
 
 `demo.gif` 由工作台截图合成。`pipeline.gif` 演示 Agent 流水线。换过素材图后运行 `python scripts/build-readme-assets.py` 重新生成。
 
