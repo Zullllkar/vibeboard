@@ -31,5 +31,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "server-fastify.ts", "Loomic", "open-design"]
+  "exclude": ["node_modules", "server-fastify.ts", "Loomic", "open-design", "release", "dist-sidecar"]
 }

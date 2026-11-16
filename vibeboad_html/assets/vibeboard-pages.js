@@ -156,7 +156,7 @@
   var downloadStatus = document.getElementById("download-status");
   if (downloadLink && downloadStatus) {
     downloadLink.addEventListener("click", function () {
-      downloadStatus.textContent = "已开始下载 Vibeboard-Setup-0.1.0-x64.exe。";
+      downloadStatus.textContent = "已开始下载 Vibeboard-0.1.0-x64.zip。";
     });
   }
 

@@ -103,8 +103,10 @@
     "files": [
       "desktop/**/*",
       "!desktop/scripts/**",
-      "!desktop/**/*.test.ts"
+      "!desktop/**/*.test.ts",
+      "!node_modules/**"
     ],
+    "electronLanguages": ["en-US", "zh-CN"],
     "extraResources": [
       {
         "from": "dist-sidecar",
@@ -113,15 +115,10 @@
     ],
     "win": {
       "icon": "desktop/icons/icon.png",
+      "artifactName": "Vibeboard-${version}-${arch}.${ext}",
       "target": [
         {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "dir",
+          "target": "zip",
           "arch": [
             "x64"
           ]

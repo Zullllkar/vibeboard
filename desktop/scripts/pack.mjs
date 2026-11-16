@@ -35,6 +35,7 @@ function copyIfExists(from, to) {
   cpSync(from, to, { recursive: true, dereference: true });
 }
 
+rmSync(path.join(root, "release"), { recursive: true, force: true });
 rmSync(sidecar, { recursive: true, force: true });
 mkdirSync(sidecar, { recursive: true });
 
@@ -62,6 +63,23 @@ copyIfExists(
   path.join(root, "design-systems"),
   path.join(appDir, "design-systems")
 );
+
+const sidecarJunk = [
+  ".git",
+  ".github",
+  ".vad",
+  ".vad-data",
+  "desktop",
+  "docs",
+  "Loomic",
+  "open-design",
+  "release",
+  "src",
+  "vibeboad_html",
+];
+for (const name of sidecarJunk) {
+  rmSync(path.join(appDir, name), { recursive: true, force: true });
+}
 
 console.log("[pack] bundle custom server");
 run("pnpm", [
