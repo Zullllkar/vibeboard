@@ -37,7 +37,16 @@ Vibeboard 给能说清产品、但需要先拿到成品视觉再让 coding agent
 
 ## 快速开始
 
-需要 Node.js 20.19+、22.12+ 或 24，以及 pnpm 8+。启动后在应用里填写 LLM Key（OpenAI、Anthropic，或任意 OpenAI 兼容接口）。
+适用于 Windows 10 64 位或 Windows 11。下载 [Vibeboard-0.1.0-x64.zip](https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-0.1.0-x64.zip)，解压后运行 `Vibeboard.exe`。程序未签名，SmartScreen 可能提示未知发布者。
+
+SHA256：`D65FC2AC60BDB2E6FD99D2691997F95A57AE5825E6DD0F42711D7BD309F2652B`
+
+打开后在应用里填写 LLM Key（OpenAI、Anthropic，或任意 OpenAI 兼容接口）。
+
+<details>
+<summary><b>从源码运行</b></summary>
+
+需要 Node.js 20.19+、22.12+ 或 24，以及 pnpm 8+。
 
 ```bash
 git clone https://github.com/Zullllkar/vibeboard.git
@@ -47,7 +56,9 @@ pnpm dev            # 浏览器调试 http://localhost:3000
 pnpm dev:desktop    # 桌面窗口
 ```
 
-桌面安装包面向 Windows（`pnpm dist:desktop` 打出未签名的 NSIS）。`pnpm dev` 已经在跑时，`pnpm dev:desktop` 只再开一个窗口。
+`pnpm dev` 已经在跑时，`pnpm dev:desktop` 只再开一个窗口。`pnpm dist:desktop` 打出 Windows 便携 zip。
+
+</details>
 
 <details>
 <summary><b>连接 Cursor / Claude Code / Codex</b></summary>
@@ -202,7 +213,7 @@ pnpm readme:sync   # 恢复英文默认
 |---------|-------------|
 | `pnpm dev` | Next.js 开发服务器 |
 | `pnpm dev:desktop` | 桌面窗口（端口 18765，数据在 userData） |
-| `pnpm dist:desktop` | 未签名的 Windows NSIS 安装包 |
+| `pnpm dist:desktop` | Windows 便携 zip |
 | `pnpm dist:desktop:dir` | 未打包目录，用来冒烟 |
 | `pnpm daemon` | 持久化守护进程（`127.0.0.1:3921`） |
 | `pnpm build` / `pnpm start` | 生产构建与启动 |

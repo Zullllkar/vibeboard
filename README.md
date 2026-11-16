@@ -37,7 +37,16 @@ Vibeboard is for developers who can describe a product and need finished visuals
 
 ## Quick start
 
-Node.js 20.19+, 22.12+, or 24, plus pnpm 8+. Add an LLM key in the app after it starts (OpenAI, Anthropic, or any OpenAI-compatible provider).
+Windows 10 64-bit or Windows 11. Download [Vibeboard-0.1.0-x64.zip](https://github.com/Zullllkar/vibeboard/releases/download/v0.1.0/Vibeboard-0.1.0-x64.zip), unzip it, and run `Vibeboard.exe`. The build is unsigned, so SmartScreen may warn about an unknown publisher.
+
+SHA256: `D65FC2AC60BDB2E6FD99D2691997F95A57AE5825E6DD0F42711D7BD309F2652B`
+
+After it opens, add an LLM key in the app (OpenAI, Anthropic, or any OpenAI-compatible provider).
+
+<details>
+<summary><b>Run from source</b></summary>
+
+Node.js 20.19+, 22.12+, or 24, plus pnpm 8+.
 
 ```bash
 git clone https://github.com/Zullllkar/vibeboard.git
@@ -47,7 +56,9 @@ pnpm dev            # browser debug at http://localhost:3000
 pnpm dev:desktop    # desktop window
 ```
 
-The desktop installer target is Windows (`pnpm dist:desktop` builds an unsigned NSIS package). If `pnpm dev` is already running, `pnpm dev:desktop` only opens a window.
+If `pnpm dev` is already running, `pnpm dev:desktop` only opens a window. `pnpm dist:desktop` builds the Windows portable zip.
+
+</details>
 
 <details>
 <summary><b>Connect Cursor / Claude Code / Codex</b></summary>
@@ -202,7 +213,7 @@ A browser landing page at [docs/index.html](docs/index.html) redirects by `navig
 |---------|-------------|
 | `pnpm dev` | Next.js dev server |
 | `pnpm dev:desktop` | Desktop window (port 18765, data in userData) |
-| `pnpm dist:desktop` | Unsigned Windows NSIS installer |
+| `pnpm dist:desktop` | Windows portable zip |
 | `pnpm dist:desktop:dir` | Unpacked app folder for smoke tests |
 | `pnpm daemon` | Persistence daemon (`127.0.0.1:3921`) |
 | `pnpm build` / `pnpm start` | Production build and server |
